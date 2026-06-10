@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>水電面板訂購工具</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap');
+  :root {
+    --bg:#f5f3ef;--bg2:#eeebe5;--bg3:#e5e1d8;--surface:#faf9f6;
+    --border:#d8d2c8;--border2:#c8c0b4;--text:#2c2820;--text2:#6b6258;
+    --text3:#9e9488;--accent2:#5c5248;--gold:#b8a882;--gold2:#9e8f6a;
+    --red:#8c4a3c;--shadow:0 1px 4px rgba(44,40,32,.08);--shadow2:0 4px 20px rgba(44,40,32,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.7;}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Noto Sans TC',sans-serif;font-size:20px;font-weight:300;letter-spacing:.1em;color:var(--text);}
+  .logo span{color:var(--gold2);}
+  .header-actions{display:flex;gap:10px;}
+  .btn{font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:400;padding:8px 18px;border-radius:2px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;letter-spacing:.06em;transition:all .2s;}
+  .btn:hover{background:var(--bg3);color:var(--text);}
+  .btn.primary{background:var(--accent2);border-color:var(--accent2);color:#f5f3ef;}
+  .btn.primary:hover{background:var(--text);border-color:var(--text);}
+  .btn.danger{color:var(--red);border-color:#d4b4ae;}
+  .btn.danger:hover{background:#f5e8e6;}
+  .btn.sm{padding:5px 12px;font-size:11px;}
+  .btn.gold{background:var(--gold);border-color:var(--gold);color:var(--surface);}
+  .btn.gold:hover{background:var(--gold2);border-color:var(--gold2);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  main{max-width:1060px;margin:0 auto;padding:32px 24px;}
+  section{margin-bottom:28px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:24px;box-shadow:var(--shadow);}
+  .card-title{font-family:'Noto Sans TC',sans-serif;font-size:11px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  label{display:block;font-size:11px;letter-spacing:.08em;color:var(--text3);margin-bottom:5px;}
+  input[type="text"],select{width:100%;font-family:'Noto Sans TC',sans-serif;font-size:14px;padding:9px 12px;border:1px solid var(--border);border-radius:2px;background:var(--bg);color:var(--text);transition:border-color .2s;outline:none;}
+  input[type="text"]:focus,select:focus{border-color:var(--gold2);}
+  input:disabled,select:disabled{opacity:.5;background:var(--bg3);}
+  .add-form{display:grid;grid-template-columns:1fr 1fr 1.8fr 0.8fr 0.6fr auto;gap:10px;align-items:end;}
+  .add-form>div{display:flex;flex-direction:column;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{text-align:left;font-size:10px;font-weight:400;letter-spacing:.12em;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  thead th:first-child{min-width:72px;}
+  tbody tr{border-bottom:1px solid var(--bg3);transition:background .15s;position:relative;}
+  tbody tr:hover{background:var(--bg2);}
+  tbody td{padding:10px 12px;vertical-align:top;}
+  tbody td:first-child{min-width:72px;white-space:nowrap;}
+  td.parts{font-size:12px;color:var(--text2);line-height:1.9;}
+  td.parts span{display:inline-block;background:var(--bg3);border:1px solid var(--border);padding:1px 8px;border-radius:20px;margin:2px 3px 2px 0;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);}
+  td.parts span.custom-tag{background:#f0ede7;border-color:var(--gold);color:var(--gold2);}
+  .qty-badge{display:inline-block;background:var(--accent2);color:var(--surface);font-family:'DM Mono',monospace;font-size:12px;padding:2px 10px;border-radius:20px;}
+  .row-actions{display:flex;gap:6px;opacity:0;pointer-events:none;transition:opacity .15s;white-space:nowrap;}
+  tbody tr:hover .row-actions{opacity:1;pointer-events:auto;}
+  td.td-actions{width:1px;white-space:nowrap;padding:8px 10px;vertical-align:middle;}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
+  .summary-item{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+  .summary-item .part-name{color:var(--text2);flex:1;font-size:12px;}
+  .summary-item .part-qty{font-family:'DM Mono',monospace;font-size:16px;color:var(--text);margin-left:12px;}
+  .summary-item .part-unit{font-size:10px;color:var(--text3);margin-left:3px;}
+  .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;letter-spacing:.06em;}
+  .series-tag{display:inline-block;font-size:10px;letter-spacing:.1em;padding:2px 8px;border-radius:2px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+  footer{margin-top:48px;padding:20px 24px;text-align:center;font-size:11px;color:var(--text3);letter-spacing:.08em;border-top:1px solid var(--border);}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(44,40,32,.45);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:28px;max-width:520px;width:92%;box-shadow:var(--shadow2);max-height:90vh;overflow-y:auto;}
+  .modal h3{font-family:'Noto Sans TC',sans-serif;font-size:16px;font-weight:500;margin-bottom:16px;color:var(--text);}
+  .modal p{color:var(--text2);font-size:13px;margin-bottom:20px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+  .edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:4px;}
+  .edit-grid .full{grid-column:1/-1;}
+  .notif{position:fixed;bottom:24px;right:24px;background:var(--accent2);color:var(--surface);padding:10px 20px;border-radius:3px;font-size:12px;letter-spacing:.06em;opacity:0;transform:translateY(8px);transition:all .3s;z-index:300;}
+  .notif.show{opacity:1;transform:translateY(0);}
+  /* custom parts builder */
+  .custom-parts-list{margin-bottom:12px;}
+  .custom-part-row{display:grid;grid-template-columns:1fr 80px auto;gap:8px;align-items:center;margin-bottom:8px;}
+  .custom-part-row input{font-family:'DM Mono',monospace;font-size:12px;}
+  .color-dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--border2);display:inline-block;flex-shrink:0;}
+  @media(max-width:700px){.add-form{grid-template-columns:1fr 1fr}.info-grid{grid-template-columns:1fr}header{padding:16px}.logo{font-size:16px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">山澄 <span>／</span> 面板訂購工具</div>
+  <div class="header-actions">
+    <button class="btn" onclick="importData()">匯入</button>
+    <button class="btn" onclick="exportJSON()">儲存 JSON</button>
+    <button class="btn gold" onclick="exportPDF()">匯出 PDF</button>
+  </div>
+</header>
+
+<main>
+  <!-- 專案資訊 -->
+  <section>
+    <div class="card">
+      <div class="card-title">專案資訊</div>
+      <div class="info-grid">
+        <div>
+          <label>案名</label>
+          <input type="text" id="projectName" placeholder="例：王宅改裝工程">
+        </div>
+        <div>
+          <label>面板系列</label>
+          <select id="panelSeries" onchange="onSeriesChange()">
+            <option value="Glatima">Glatima（國際牌）</option>
+            <option value="Risna">Risna（國際牌）</option>
+            <option value="So-style">So-style（國際牌）</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 新增項目 -->
+  <section>
+    <div class="card">
+      <div class="card-title">新增項目</div>
+      <div class="add-form">
+        <div>
+          <label>空間</label>
+          <input type="text" id="addSpace" placeholder="例：玄關" list="spaceList">
+          <datalist id="spaceList">
+            <option value="玄關"><option value="客廳"><option value="餐廳"><option value="廚房">
+            <option value="主臥"><option value="次臥"><option value="兒童房"><option value="主衛">
+            <option value="客衛"><option value="走廊"><option value="書房"><option value="陽台">
+          </datalist>
+        </div>
+        <div>
+          <label>蓋板顏色</label>
+          <select id="addCoverColor"></select>
+        </div>
+        <div>
+          <label>類型</label>
+          <select id="addType" onchange="onTypeChange()"></select>
+        </div>
+        <div>
+          <label>零件色</label>
+          <select id="addPartColor"></select>
+        </div>
+        <div>
+          <label>數量</label>
+          <input type="text" id="addQty" placeholder="1">
+        </div>
+        <div>
+          <button class="btn primary" onclick="addItem()" style="white-space:nowrap">＋ 新增</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 項目列表 -->
+  <section>
+    <div class="card">
+      <div class="card-title">項目列表</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>空間</th>
+              <th>蓋板色</th>
+              <th>類型</th>
+              <th>零件色</th>
+              <th>方向</th>
+              <th>數量</th>
+              <th>拆分零件（含料號）</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="itemBody">
+            <tr><td colspan="8" class="empty">尚無項目，請新增面板項目</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 零件統計 -->
+  <section>
+    <div class="card">
+      <div class="card-title">零件統計匯總</div>
+      <div id="summaryContent"><div class="empty">新增項目後將顯示統計</div></div>
+    </div>
+  </section>
+</main>
+
+<footer>山澄空間設計 ／ 面板訂購計算工具 ／ v1.1</footer>
+<div class="notif" id="notif"></div>
+
+<!-- 刪除 modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>確認刪除</h3>
+    <p>確定要刪除此項目嗎？此動作無法還原。</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeDeleteModal()">取消</button>
+      <button class="btn danger" onclick="confirmDelete()">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯 modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>編輯項目</h3>
+    <div class="edit-grid">
+      <div><label>空間</label><input type="text" id="editSpace" list="spaceList"></div>
+      <div><label>蓋板顏色</label><select id="editCoverColor"></select></div>
+      <div class="full"><label>類型</label><select id="editType" onchange="onEditTypeChange()"></select></div>
+      <div><label>零件色</label><select id="editPartColor"></select></div>
+      <div><label>方向</label><select id="editDir"><option value="橫">橫式</option><option value="直">直式</option></select></div>
+      <div><label>數量</label><input type="text" id="editQty"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEditModal()">取消</button>
+      <button class="btn primary" onclick="confirmEdit()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 自訂組合 modal -->
+<div class="modal-overlay" id="customModal">
+  <div class="modal">
+    <h3>自訂組合</h3>
+    <p style="margin-bottom:14px;">手動輸入零件料號與數量，結果會加入匯總。</p>
+    <div style="margin-bottom:12px;">
+      <label>空間</label>
+      <input type="text" id="customSpace" placeholder="例：玄關" list="spaceList" style="margin-bottom:10px;">
+      <label>說明（顯示於列表）</label>
+      <input type="text" id="customLabel" placeholder="例：客廳雙連混合面板">
+    </div>
+    <div class="custom-parts-list" id="customPartsList"></div>
+    <button class="btn sm" onclick="addCustomPartRow()" style="margin-bottom:16px;">＋ 新增零件</button>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeCustomModal()">取消</button>
+      <button class="btn primary" onclick="confirmCustom()">加入列表</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// GLATIMA 資料表
+// ═══════════════════════════════════════════════════════════
+const GL = {
+  // ① 外蓋板：[單連橫, 單連直, 雙連橫, 雙連直]
+  cover: {
+    '玻璃/霧黑':      ['WTGF6100GB','WTGF6101GB','WTGF61002GB','WTGF6102GB'],
+    '玻璃/霧白':      ['WTGF6100GW','WTGF6101GW','WTGF61002GW','WTGF6102GW'],
+    '玻璃/湖水綠':    ['WTGF8-6100GMJ','WTGF8-6101GMJ','無此項目','無此項目'],
+    '玻璃/霧灰綠':    ['WTGF8-6100GGM','WTGF8-6101GGM','無此項目','無此項目'],
+    '玻璃/雅麻米':    ['WTGF8-6100GSS','WTGF8-6101GSS','無此項目','無此項目'],
+    '玻璃/櫻蝦橘':    ['WTGF8-6100GS','WTGF8-6101GS','無此項目','無此項目'],
+    '玻璃/暮色紫':    ['WTGF8-6100GEH','WTGF8-6101GEH','無此項目','無此項目'],
+    '玻璃/午夜藍':    ['WTGF8-6100GM','WTGF8-6101GM','無此項目','無此項目'],
+    '鋁合金/鈦坦灰':  ['WTGF6100DS','WTGF6101DS','WTGF61002DS','WTGF6102DS'],
+    '鋁合金/銀':      ['WTGF6100S','WTGF6101S','WTGF61002S','WTGF6102S'],
+    '鋁合金/黑':      ['WTGF6100B','WTGF6101B','WTGF61002B','WTGF6102B'],
+    '鋁合金/古銅':    ['WTGF6100A','WTGF6101A','WTGF61002A','WTGF6102A'],
+    '鋁合金/棧瓦黑':  ['WTGF6100AB','WTGF6101AB','WTGF61002AB','WTGF6102AB'],
+    '鋁合金/赤陶銅':  ['WTGF6100AA','WTGF6101AA','WTGF61002AA','WTGF6102AA'],
+    '鋁合金/青炭灰':  ['WTGF6100AH','WTGF6101AH','WTGF61002AH','WTGF6102AH'],
+    '鋁合金/鏽銅':    ['WTGF6100DA','WTGF6101DA','WTGF61002DA','WTGF6102DA'],
+    '不鏽鋼/黑色':    ['WTGF6100SB','WTGF6101SB','WTGF61002SB','WTGF6102SB'],
+  },
+  // ② 開關按鍵：type -> {color: pn}
+  btn: {
+    '單連1切開關': {'陶瓷白':'WTGF5152CW','灰':'WTGF5152H','黑':'WTGF5152B','青炭灰':'WTGF5152AH','赤陶銅':'WTGF5152AA','棧瓦黑':'WTGF5152AB'},
+    '單連2切開關': {'陶瓷白':'WTGF5252CW','灰':'WTGF5252H','黑':'WTGF5252B','青炭灰':'WTGF5252AH','赤陶銅':'WTGF5252AA','棧瓦黑':'WTGF5252AB'},
+    '單連3切開關': {'陶瓷白':'WTGF5352CW','灰':'WTGF5352H','黑':'WTGF5352B','青炭灰':'WTGF5352AH','赤陶銅':'WTGF5352AA','棧瓦黑':'WTGF5352AB'},
+    // 4切=2切×2, 5切=2切×1+3切×1, 6切=3切×2 (handled in logic)
+    '雙連4切開關': null,
+    '雙連5切開關': null,
+    '雙連6切開關': null,
+  },
+  // 混合類（料號即完整組合，外蓋板另計）
+  combo: {
+    '單連1切開關+1插座':      {'白':'WTRF4308W','灰':'WTGF4308H','黑':'WTGF4308B'},
+    '單連1切開關+雙USB':      {'白':'WTRF10726WK','灰':'WTGF10726HK','黑':null},
+    '單連1切開關+雙USB(快充)':{'白':'WTRF107216W','灰':'WTGF107216H','黑':'WTGF107216MB'},
+    '單連1切開關+USB/C(快充)':{'白':'WTRF14746W','灰':'WTGF14746H','黑':'WTGF14746MB'},
+  },
+  // ③ 插座弱電特殊零件：type -> {color: pn}
+  part: {
+    '2.0接地雙插座':       {'白':'WNF15123WK','灰':'WTGF1512H','黑':'WTGF1512MB'},
+    '2.0接地雙插座(緊急)': {'紅':'WNF15123RK'},
+    '5.5接地單插座':       {'白':'WNF11016W','灰':'WTGF11016H','黑':'WTGF11016MB'},
+    '5.5接地單插座(緊急)': {'紅':'WNF11016R'},
+    '5.5接地雙插座':       {'白':'WNF151236W','灰':'WTGF15126H','黑':'WTGF15126MB'},
+    '5.5接地雙插座(緊急)': {'紅':'WNF151236R'},
+    '220V接地插座':        {'白':'WNF3620W','灰':'WNF3620H','黑':'WNF3620MB'},
+    '220V接地插座(緊急)':  {'紅':'WNF3620R'},
+    '接地單插+USB/C(快充)':{'白':'WNF1564W','灰':'WNF1564H','黑':'WNF1564MB'},
+    '單孔網路': {'白':'NRF3170W','灰':'WTGF3170H','黑':'WTGF3170MB'},
+    '雙孔網路': {'白':'NRF3170W','灰':'NRF3170H','黑':'NRF3170MB'},   // ×2
+    '三孔網路': {'白':'NRF3170','灰':'NRF3170','黑':'NRF3170'},        // ×3
+    '單孔電話': {'白':'WNF2164W','灰':'WTGF2164H','黑':'WTGF2164MB'},
+    '雙孔電話': {'白':'WNF2264W','灰':'WTGF2264H','黑':'WTGF2264MB'},
+    '單孔電視': {'白':'WCSF4882W','灰':'WTGF4882H','黑':'WTGF4882MB'},
+    '雙孔電視': {'白':'WCSF4882W','灰':'WCSF47629H','黑':'WCSF47629MB'}, // ×2
+    '電話+網路': {
+      '白':'電話 WNF2164W ×1 + 網路 NRF3170W ×1',
+      '灰':'電話 WTGF2164H ×1 + 網路 NRF3170H ×1',
+      '黑':'電話 WTGF2164MB ×1 + 網路 NRF3170MB ×1',
+    },
+    '電視+網路': {
+      '白':'TV WCSF4882W ×1 + 網路 NRF3170W ×1',
+      '灰':'TV WCSF4882H ×1 + 網路 NRF3170H ×1',
+      '黑':'TV WCSF4882MB ×1 + 網路 NRF3170MB ×1',
+    },
+    '電視+電話': {
+      '白':'TV WCSF4882W ×1 + 電話 WNF2164W ×1',
+      '灰':'TV WCSF4882H ×1 + 電話 WTGF2164H ×1',
+      '黑':'TV WCSF4882MB ×1 + 電話 WTGF2164MB ×1',
+    },
+    '雙網路+單電話': {
+      '白':'網路 NRF3170W ×2 + 電話 WNF2164W ×1',
+      '灰':'網路 NRF3170H ×2 + 電話 WTGF2164H ×1',
+      '黑':'網路 NRF3170MB ×2 + 電話 WTGF2164MB ×1',
+    },
+    '雙網路+單電視': {
+      '白':'網路 NRF3170W ×2 + TV WCSF4882W ×1',
+      '灰':'網路 NRF3170H ×2 + TV WCSF4882H ×1',
+      '黑':'網路 NRF3170MB ×2 + TV WCSF4882MB ×1',
+    },
+    '單連盲蓋': {'白':'WTF6191W','灰':'WTGF6191H','黑':'WTGF6191B'},
+    '雙連盲蓋': {'白':'WTF6191W','灰':'WTGF6191H','黑':'WTGF6191B'}, // ×2 + 雙連外蓋
+    '緊急押釦': {'白':'WTFF4510W','灰':'WTGF4510H'},
+    '電鈴':     {'白':'WTRF5401W','灰':'WTGF5401H'},
+  },
+  // ④ 化妝蓋板 孔數 -> {color: pn}
+  cosmetic: {
+    1: {'白':'WTFF3111W','灰':'WTGF3111H','黑':'WTGF3111B'},
+    2: {'白':'WTFF3112W','灰':'WTGF3112H','黑':'WTGF3112B'},
+    3: {'白':'WTFF3113W','灰':'WTGF3113H','黑':'WTGF3113B'},
+  },
+  // ⑤ 絕緣框架
+  frame: 'WTFF3710',
+  // 各弱電類型需要的孔數與框架規則
+  weakConfig: {
+    '單孔網路':    {holes:1, frameColors:['白']},
+    '雙孔網路':    {holes:2, frameColors:['白','灰','黑']},
+    '三孔網路':    {holes:3, frameColors:['白','灰','黑']},
+    '單孔電話':    {holes:1, frameColors:['白']},
+    '雙孔電話':    {holes:2, frameColors:['白']},
+    '單孔電視':    {holes:1, frameColors:['白']},
+    '雙孔電視':    {holes:2, frameColors:['白','灰','黑']},
+    '電話+網路':   {holes:2, frameColors:['白','灰','黑']},
+    '電視+網路':   {holes:2, frameColors:['白','灰','黑']},
+    '電視+電話':   {holes:2, frameColors:['白','灰','黑']},
+    '雙網路+單電話':{holes:3, frameColors:['白','灰','黑']},
+    '雙網路+單電視':{holes:3, frameColors:['白','灰','黑']},
+  },
+  // 哪些類型是雙連外蓋板
+  isDouble: ['雙連4切開關','雙連5切開關','雙連6切開關','雙連盲蓋'],
+  // 零件色選項定義
+  partColors: {
+    switch:  ['陶瓷白','灰','黑','青炭灰','赤陶銅','棧瓦黑'],
+    other:   ['白','灰','黑'],
+    urgent:  ['紅'],
+    limited2:['白','灰'], // 緊急押釦、電鈴只有白灰
+  },
+};
+
+// ── SO-STYLE 資料（顏色=白/灰/黑，單一維度，無橫直） ──────────
+const SS = {
+  // type -> color -> {cover, btn/part, frame}
+  data: {
+    '單連1切開關':    {'白':{cover:'WNSF6101W',btn:'WNSF5052W',frame:'WNSF3710'},'灰':{cover:'WNSF6101H',btn:'WNSF5052H',frame:'WNSF3710'},'黑':{cover:'WNSF6101B',btn:'WNSF5052B',frame:'WNSF3710'}},
+    '單連2切開關':    {'白':{cover:'WNSF6102W',btn:'WNSF5052W',frame:'WNSF3710'},'灰':{cover:'WNSF6102H',btn:'WNSF5052H',frame:'WNSF3710'},'黑':{cover:'WNSF6102B',btn:'WNSF5052B',frame:'WNSF3710'}},
+    '單連3切開關':    {'白':{cover:'WNSF6103W',btn:'WNSF5052W',frame:'WNSF3710'},'灰':{cover:'WNSF6103H',btn:'WNSF5052H',frame:'WNSF3710'},'黑':{cover:'WNSF6103B',btn:'WNSF5052B',frame:'WNSF3710'}},
+    '雙連4切開關':    {'白':{cover:'WNSF6104W',btn:'WNSF5052W',frame:'WNSF3710'},'灰':{cover:'WNSF6104H',btn:'WNSF5052H',frame:'WNSF3710'},'黑':{cover:'WNSF6104B',btn:'WNSF5052B',frame:'WNSF3710'}},
+    '雙連5切開關':    {'白':{cover:'WNSF6105W',btn:'WNSF5052W',frame:'WNSF3710'},'灰':{cover:'WNSF6105H',btn:'WNSF5052H',frame:'WNSF3710'},'黑':{cover:'WNSF6105B',btn:'WNSF5052B',frame:'WNSF3710'}},
+    '雙連6切開關':    {'白':{cover:'WNSF6106W',btn:'WNSF5052W',frame:'WNSF3710'},'灰':{cover:'WNSF6106H',btn:'WNSF5052H',frame:'WNSF3710'},'黑':{cover:'WNSF6106B',btn:'WNSF5052B',frame:'WNSF3710'}},
+    '單連1切開關+1插座':{'白':{cover:'WNSF6102W',btn:'WNSF5052W',frame:'WNSF3710',sock:'WNF1101W'},'灰':{cover:'WNSF6102H',btn:'WNSF5052H',frame:'WNSF3710',sock:'WNF1101H'},'黑':{cover:'WNSF6102B',btn:'WNSF5052B',frame:'WNSF3710',sock:'WNF1101B'}},
+    '雙連2切開關+2.0雙插座':{'白':{cover:'WNSF6105W',btn:'WNSF5052W',frame:'WNSF3710',sock:'WNF15123MCW'},'灰':{cover:'WNSF6105H',btn:'WNSF5052H',frame:'WNSF3710',sock:'WNF15123MH'},'黑':{cover:'WNSF6105B',btn:'WNSF5052B',frame:'WNSF3710',sock:'WNF15123MB'}},
+    '雙連2切開關+5.5雙插座':{'白':{cover:'WNSF6105W',btn:'WNSF5052W',frame:'WNSF3710',sock:'WNF151236MCW'},'灰':{cover:'WNSF6105H',btn:'WNSF5052H',frame:'WNSF3710',sock:'WNF151236MH'},'黑':{cover:'WNSF6105B',btn:'WNSF5052B',frame:'WNSF3710',sock:'WNF151236MB'}},
+    '2.0接地雙插座':  {'白':{cover:'WNSF6103W',sock:'WNF15123MCW'},'灰':{cover:'WNSF6103H',sock:'WNF15123MH'},'黑':{cover:'WNSF6103B',sock:'WNF15123MB'}},
+    '5.5接地單插座':  {'白':{cover:'WNSF6103W',sock:'WNF11016MCW'},'灰':{cover:'WNSF6103H',sock:'WNF11016MH'},'黑':{cover:'WNSF6103B',sock:'WNF11016MB'}},
+    '5.5接地雙插座':  {'白':{cover:'WNSF6103W',sock:'WNF151236MCW'},'灰':{cover:'WNSF6103H',sock:'WNF151236MH'},'黑':{cover:'WNSF6103B',sock:'WNF151236MB'}},
+    '220V接地插座':   {'白':{cover:'WNSF6103W',sock:'WNF3620MCW'},'灰':{cover:'WNSF6103H',sock:'WNF3620MH'},'黑':{cover:'WNSF6103B',sock:'WNF3620MB'}},
+    '單孔網路':  {'白':{cover:'WNSF6101W',sock:'NRF3170W',frame:'WNSF3710'},'灰':{cover:'WNSF6101H',sock:'NRF3170H',frame:'WNSF3710'},'黑':{cover:'WNSF6101B',sock:'NRF3170MB',frame:'WNSF3710'}},
+    '雙孔網路':  {'白':{cover:'WNSF6102W',sock:'NRF3170W',sockQty:2,frame:'WNSF3710'},'灰':{cover:'WNSF6102H',sock:'NRF3170H',sockQty:2,frame:'WNSF3710'},'黑':{cover:'WNSF6102B',sock:'NRF3170MB',sockQty:2,frame:'WNSF3710'}},
+    '單孔電話':  {'白':{cover:'WNSF6101W',sock:'WNF2164W',frame:'WNSF3710'},'灰':{cover:'WNSF6101H',sock:'WNF2164H',frame:'WNSF3710'},'黑':{cover:'WNSF6101B',sock:'WNF2164MB',frame:'WNSF3710'}},
+    '雙孔電話':  {'白':{cover:'WNSF6103W',sock:'WNF2264W',frame:'WNSF3710'},'灰':{cover:'WNSF6103H',sock:'WNF2264H',frame:'WNSF3710'},'黑':{cover:'WNSF6103B',sock:'WNF2264MB',frame:'WNSF3710'}},
+    '電話+網路': {'白':{cover:'WNSF6102W',sock:'WNF2164W+NRF3170W',frame:'WNSF3710'},'灰':{cover:'WNSF6102H',sock:'WNF2164H+NRF3170H',frame:'WNSF3710'},'黑':{cover:'WNSF6102B',sock:'WNF2164MB+NRF3170MB',frame:'WNSF3710'}},
+    '電視+網路': {'白':{cover:'WNSF6102W',sock:'WCSF47629W+NRF3170W',frame:'WNSF3710'},'灰':{cover:'WNSF6102H',sock:'WCSF47629H+NRF3170H',frame:'WNSF3710'},'黑':{cover:'WNSF6102B',sock:'WCSF47629MB+NRF3170MB',frame:'WNSF3710'}},
+    '單孔電視':  {'白':{cover:'WNSF6101W',sock:'WCSF47629W',frame:'WNSF3710'},'灰':{cover:'WNSF6101H',sock:'WCSF47629H',frame:'WNSF3710'},'黑':{cover:'WNSF6101B',sock:'WCSF47629MB',frame:'WNSF3710'}},
+    '單連盲蓋':  {'白':{cover:'WNSF6191W'},'灰':{cover:'WNSF6191H'},'黑':{cover:'WNSF6191B'}},
+    '雙連盲蓋':  {'白':{cover:'WNSF6192W'},'灰':{cover:'WNSF6192H'},'黑':{cover:'WNSF6192B'}},
+  },
+  btnCuts: {'單連1切開關':1,'單連2切開關':2,'單連3切開關':3,'雙連4切開關':4,'雙連5切開關':5,'雙連6切開關':6},
+  comboCuts: {'單連1切開關+1插座':1,'雙連2切開關+2.0雙插座':2,'雙連2切開關+5.5雙插座':2},
+};
+
+// ── RISNA 資料（顏色=白/銅邊、白/銀邊、灰/銀邊，無橫直） ──────
+const RN = {
+  // type -> color -> {cover, btn/sock, frame}
+  data: {
+    '單連1切開關':    {'白/銅邊':{cover:'WTRF6101WQ',btn:'WTRF5152W'},'白/銀邊':{cover:'WTRF6101WS',btn:'WTRF5152W'},'灰/銀邊':{cover:'WTRF6101HS',btn:'WTRF5152H'}},
+    '單連2切開關':    {'白/銅邊':{cover:'WTRF6101WQ',btn:'WTRF5252W'},'白/銀邊':{cover:'WTRF6101WS',btn:'WTRF5252W'},'灰/銀邊':{cover:'WTRF6101HS',btn:'WTRF5252H'}},
+    '單連3切開關':    {'白/銅邊':{cover:'WTRF6101WQ',btn:'WTRF5352W'},'白/銀邊':{cover:'WTRF6101WS',btn:'WTRF5352W'},'灰/銀邊':{cover:'WTRF6101HS',btn:'WTRF5352H'}},
+    '雙連4切開關':    {'白/銅邊':{cover:'WTRF6102WQ',btn2:'WTRF5252W',cnt:2},'白/銀邊':{cover:'WTRF6102WS',btn2:'WTRF5252W',cnt:2},'灰/銀邊':{cover:'WTRF6102HS',btn2:'WTRF5252H',cnt:2}},
+    '雙連5切開關':    {'白/銅邊':{cover:'WTRF6102WQ',btn2:'WTRF5252W',btn3:'WTRF5352W'},'白/銀邊':{cover:'WTRF6102WS',btn2:'WTRF5252W',btn3:'WTRF5352W'},'灰/銀邊':{cover:'WTRF6102HS',btn2:'WTRF5252H',btn3:'WTRF5352H'}},
+    '雙連6切開關':    {'白/銅邊':{cover:'WTRF6102WQ',btn3:'WTRF5352W',cnt:2},'白/銀邊':{cover:'WTRF6102WS',btn3:'WTRF5352W',cnt:2},'灰/銀邊':{cover:'WTRF6102HS',btn3:'WTRF5352H',cnt:2}},
+    '單連1切開關+1插座':   {'白/銅邊':{cover:'WTRF6101WQ',combo:'WTRF4308W'},'白/銀邊':{cover:'WTRF6101WS',combo:'WTRF4308W'},'灰/銀邊':{cover:'WTRF6101HS',combo:'WTRF4308H'}},
+    '單連1切開關+雙USB':   {'白/銅邊':{cover:'WTRF6101WQ',combo:'WTRF10726WK'},'白/銀邊':{cover:'WTRF6101WS',combo:'WTRF10726WK'},'灰/銀邊':{cover:'WTRF6101HS',combo:'WTRF10726HK'}},
+    '單連1切開關+雙USB(快充)': {'白/銅邊':{cover:'WTRF6101WQ',combo:'WTRF107216W'},'白/銀邊':{cover:'WTRF6101WS',combo:'WTRF107216W'},'灰/銀邊':{cover:'WTRF6101HS',combo:'WTRF107216H'}},
+    '單連1切開關+USB/C(快充)': {'白/銅邊':{cover:'WTRF6101WQ',combo:'WTRF14746W'},'白/銀邊':{cover:'WTRF6101WS',combo:'WTRF14746W'},'灰/銀邊':{cover:'WTRF6101HS',combo:'WTRF14746H'}},
+    '2.0接地雙插座':       {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF15123WK'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF15123WK'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF15123HK'}},
+    '2.0接地雙插座(緊急)': {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF15123RK'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF15123RK'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF15123RK'}},
+    '5.5接地單插座':       {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF11016W'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF11016W'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF11016H'}},
+    '5.5接地單插座(緊急)': {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF11016R'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF11016R'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF11016R'}},
+    '5.5接地雙插座':       {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF151236W'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF151236W'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF151236H'}},
+    '5.5接地雙插座(緊急)': {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF151236R'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF151236R'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF151236R'}},
+    '220V接地插座':        {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF3620W'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF3620W'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF3620H'}},
+    '220V接地插座(緊急)':  {'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF3620R'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF3620R'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF3620R'}},
+    '接地單插+USB/C(快充)':{'白/銅邊':{cover:'WTRF6803WQ',sock:'WNF1564W'},'白/銀邊':{cover:'WTRF6803WS',sock:'WNF1564W'},'灰/銀邊':{cover:'WTRF6803HS',sock:'WNF1564H'}},
+    '單孔網路': {'白/銅邊':{cover:'WTRF6801WQ',sock:'NRF3170W',frame:'WTFF3710'},'白/銀邊':{cover:'WTRF6801WS',sock:'NRF3170W',frame:'WTFF3710'},'灰/銀邊':{cover:'WTRF6801HS',sock:'NRF3170H',frame:'WTFF3710'}},
+    '雙孔網路': {'白/銅邊':{cover:'WTRF6802WQ',sock:'NRF3170W',sockQty:2,frame:'WTFF3710'},'白/銀邊':{cover:'WTRF6802WS',sock:'NRF3170W',sockQty:2,frame:'WTFF3710'},'灰/銀邊':{cover:'WTRF6802HS',sock:'NRF3170H',sockQty:2,frame:'WTFF3710'}},
+    '單孔電話': {'白/銅邊':{cover:'WTRF6801WQ',sock:'WNF2164W',frame:'WTFF3710'},'白/銀邊':{cover:'WTRF6801WS',sock:'WNF2164W',frame:'WTFF3710'},'灰/銀邊':{cover:'WTRF6801HS',sock:'WNF2164H',frame:'WTFF3710'}},
+    '雙孔電話': {'白/銅邊':{cover:'WTRF6802WQ',sock:'WNF2264W',frame:'WTFF3710'},'白/銀邊':{cover:'WTRF6802WS',sock:'WNF2264W',frame:'WTFF3710'},'灰/銀邊':{cover:'WTRF6802HS',sock:'WNF2264H',frame:'WTFF3710'}},
+    '電話+網路':{'白/銅邊':{cover:'WTRF6802WQ',sock:'WNF2164W+NRF3170W',frame:'WTFF3710'},'白/銀邊':{cover:'WTRF6802WS',sock:'WNF2164W+NRF3170W',frame:'WTFF3710'},'灰/銀邊':{cover:'WTRF6802HS',sock:'WNF2164H+NRF3170H',frame:'WTFF3710'}},
+    '電視+網路':{'白/銅邊':{cover:'WTRF6802WQ',sock:'WCSF47629W+NRF3170W',frame:'WTFF3710'},'白/銀邊':{cover:'WTRF6802WS',sock:'WCSF47629W+NRF3170W',frame:'WTFF3710'},'灰/銀邊':{cover:'WTRF6802HS',sock:'WCSF47629H+NRF3170H',frame:'WTFF3710'}},
+    '單孔電視': {'白/銅邊':{cover:'WTRF6801WQ',sock:'WCSF47629W',frame:'WTFF3710'},'白/銀邊':{cover:'WTRF6801WS',sock:'WCSF47629W',frame:'WTFF3710'},'灰/銀邊':{cover:'WTRF6801HS',sock:'WCSF47629H',frame:'WTFF3710'}},
+    '單連盲蓋': {'白/銅邊':{cover:'WTRF6891WQ'},'白/銀邊':{cover:'WTRF6891WS'},'灰/銀邊':{cover:'WTRF6891HS'}},
+    '雙連盲蓋': {'白/銅邊':{cover:'WTRF6892WQ'},'白/銀邊':{cover:'WTRF6892WS'},'灰/銀邊':{cover:'WTRF6892HS'}},
+    '緊急押釦': {'白/銅邊':{cover:'WTRF6803WQ',btn:'WNF4510W'},'白/銀邊':{cover:'WTRF6803WS',btn:'WNF4510W'},'灰/銀邊':{cover:'WTRF6803HS',btn:'WNF4510H'}},
+    '電鈴':     {'白/銅邊':{cover:'WTRF6101WQ',btn:'WTRF5401W'},'白/銀邊':{cover:'WTRF6101WS',btn:'WTRF5401W'},'灰/銀邊':{cover:'WTRF6101HS',btn:'WTRF5401H'}},
+  },
+};
+
+// ── 類型定義 ─────────────────────────────────────────────────
+const TYPE_GROUPS = {
+  Glatima: [
+    {group:'開關（單連）', types:['單連1切開關','單連2切開關','單連3切開關']},
+    {group:'開關（雙連）', types:['雙連4切開關','雙連5切開關','雙連6切開關']},
+    {group:'混合（開關+插座）', types:['單連1切開關+1插座','單連1切開關+雙USB','單連1切開關+雙USB(快充)','單連1切開關+USB/C(快充)']},
+    {group:'插座（強電）', types:['2.0接地雙插座','2.0接地雙插座(緊急)','5.5接地單插座','5.5接地單插座(緊急)','5.5接地雙插座','5.5接地雙插座(緊急)','220V接地插座','220V接地插座(緊急)','接地單插+USB/C(快充)']},
+    {group:'弱電', types:['單孔網路','雙孔網路','三孔網路','單孔電話','雙孔電話','單孔電視','雙孔電視','電話+網路','電視+網路','電視+電話','雙網路+單電話','雙網路+單電視']},
+    {group:'特殊', types:['單連盲蓋','雙連盲蓋','緊急押釦','電鈴','自訂組合']},
+  ],
+  'So-style': [
+    {group:'開關（單連）', types:['單連1切開關','單連2切開關','單連3切開關']},
+    {group:'開關（雙連）', types:['雙連4切開關','雙連5切開關','雙連6切開關']},
+    {group:'混合（開關+插座）', types:['單連1切開關+1插座','雙連2切開關+2.0雙插座','雙連2切開關+5.5雙插座']},
+    {group:'插座（強電）', types:['2.0接地雙插座','5.5接地單插座','5.5接地雙插座','220V接地插座']},
+    {group:'弱電', types:['單孔網路','雙孔網路','單孔電話','雙孔電話','電話+網路','電視+網路','單孔電視']},
+    {group:'特殊', types:['單連盲蓋','雙連盲蓋','自訂組合']},
+  ],
+  Risna: [
+    {group:'開關（單連）', types:['單連1切開關','單連2切開關','單連3切開關']},
+    {group:'開關（雙連）', types:['雙連4切開關','雙連5切開關','雙連6切開關']},
+    {group:'混合（開關+插座）', types:['單連1切開關+1插座','單連1切開關+雙USB','單連1切開關+雙USB(快充)','單連1切開關+USB/C(快充)']},
+    {group:'插座（強電）', types:['2.0接地雙插座','2.0接地雙插座(緊急)','5.5接地單插座','5.5接地單插座(緊急)','5.5接地雙插座','5.5接地雙插座(緊急)','220V接地插座','220V接地插座(緊急)','接地單插+USB/C(快充)']},
+    {group:'弱電', types:['單孔網路','雙孔網路','單孔電話','雙孔電話','電話+網路','電視+網路','單孔電視']},
+    {group:'特殊', types:['單連盲蓋','雙連盲蓋','緊急押釦','電鈴','自訂組合']},
+  ],
+};
+
+// ── 顏色選項 ─────────────────────────────────────────────────
+const COVER_COLORS = {
+  Glatima: Object.keys(GL.cover),
+  'So-style': ['白','灰','黑'],
+  Risna: ['白/銅邊','白/銀邊','灰/銀邊'],
+};
+
+// So-style 和 Risna：只有一個顏色維度，「零件色」欄位隱藏
+function isOneColorSeries(series) {
+  return series === 'So-style' || series === 'Risna';
+}
+
+function getPartColors(series, type) {
+  if (isOneColorSeries(series)) return []; // 單維度，不需零件色
+  if (series !== 'Glatima') return ['白','灰','黑'];
+  if (type === '自訂組合') return [];
+  if (type && type.includes('(緊急)')) return ['紅'];
+  if (type && ['緊急押釦','電鈴'].includes(type)) return ['白','灰'];
+  const switchTypes = ['單連1切開關','單連2切開關','單連3切開關','雙連4切開關','雙連5切開關','雙連6切開關'];
+  if (switchTypes.includes(type)) return GL.partColors.switch;
+  return ['白','灰','黑'];
+}
+
+// ═══════════════════════════════════════════════════════════
+// GLATIMA getParts
+// ═══════════════════════════════════════════════════════════
+function getPartsGlatima(type, coverColor, partColor, dir, qty) {
+  const n = parseInt(qty) || 1;
+  const parts = {};
+  const add = (name, count) => { parts[name] = (parts[name] || 0) + count; };
+
+  const isDouble = GL.isDouble.includes(type);
+  const coverIdx = isDouble
+    ? (dir === '橫' ? 2 : 3)
+    : (dir === '橫' ? 0 : 1);
+  const coverPn = GL.cover[coverColor]?.[coverIdx];
+  const coverLabel = `外蓋板 ${coverPn || '（未知料號）'}`;
+
+  // 開關類
+  const switchMap = {'單連1切開關':1,'單連2切開關':2,'單連3切開關':3,'雙連4切開關':4,'雙連5切開關':5,'雙連6切開關':6};
+  if (type in switchMap) {
+    add(coverLabel, n);
+    const cuts = switchMap[type];
+    if (cuts === 1) {
+      const pn = GL.btn['單連1切開關'][partColor];
+      add(`1切按鍵組（按鍵 ${pn} ×1）`, n);
+    } else if (cuts === 2) {
+      const pn = GL.btn['單連2切開關'][partColor];
+      add(`2切按鍵組（按鍵 ${pn} ×1）`, n);
+    } else if (cuts === 3) {
+      const pn = GL.btn['單連3切開關'][partColor];
+      add(`3切按鍵組（按鍵 ${pn} ×1）`, n);
+    } else if (cuts === 4) {
+      const pn2 = GL.btn['單連2切開關'][partColor];
+      add(`4切按鍵組（2切 ${pn2} ×2）`, n);
+    } else if (cuts === 5) {
+      const pn2 = GL.btn['單連2切開關'][partColor];
+      const pn3 = GL.btn['單連3切開關'][partColor];
+      add(`5切按鍵組（2切 ${pn2} ×1 + 3切 ${pn3} ×1）`, n);
+    } else if (cuts === 6) {
+      const pn3 = GL.btn['單連3切開關'][partColor];
+      add(`6切按鍵組（3切 ${pn3} ×2）`, n);
+    }
+    return parts;
+  }
+
+  // 混合類（組合料號）
+  if (type in GL.combo) {
+    add(coverLabel, n);
+    const pn = GL.combo[type][partColor];
+    add(`組合模組 ${pn || '（無此色）'}`, n);
+    return parts;
+  }
+
+  // 雙連盲蓋：外蓋板（雙連）+ 封口蓋板×2
+  if (type === '雙連盲蓋') {
+    add(coverLabel, n);
+    const pn = GL.part['雙連盲蓋'][partColor];
+    add(`封口蓋板 ${pn || '（無此色）'} ×2`, n);
+    return parts;
+  }
+  // 單連盲蓋：外蓋板（單連）+ 封口蓋板×1
+  if (type === '單連盲蓋') {
+    add(coverLabel, n);
+    const pn = GL.part['單連盲蓋'][partColor];
+    add(`封口蓋板 ${pn || '（無此色）'}`, n);
+    return parts;
+  }
+
+  // 插座類（自帶框架化妝蓋板）
+  const partPn = GL.part[type]?.[partColor];
+  if (partPn !== undefined) {
+    add(coverLabel, n);
+    if (partPn) add(`零件 ${partPn}`, n);
+    else add(`零件（無此色）`, n);
+    // 弱電另加化妝蓋板與絕緣框架
+    if (type in GL.weakConfig) {
+      const cfg = GL.weakConfig[type];
+      const cosmeticPn = GL.cosmetic[cfg.holes]?.[partColor];
+      if (cosmeticPn) add(`化妝蓋板 ${cosmeticPn}`, n);
+      if (cfg.frameColors.includes(partColor)) {
+        add(`絕緣框架 ${GL.frame}`, n);
+      }
+    }
+    return parts;
+  }
+
+  // fallback
+  add(coverLabel, n);
+  add(`${type} 零件`, n);
+  return parts;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SO-STYLE getParts（顏色單維度，無橫直）
+// ═══════════════════════════════════════════════════════════
+function getPartsSoStyle(type, color, qty) {
+  const n = parseInt(qty) || 1;
+  const parts = {};
+  const add = (name, count) => { parts[name] = (parts[name] || 0) + count; };
+  const d = SS.data[type]?.[color];
+  if (!d) { add(`（查無料號：${type}/${color}）`, n); return parts; }
+
+  add(`外蓋板 ${d.cover}`, n);
+
+  // 開關類
+  const cuts = SS.btnCuts[type];
+  if (cuts !== undefined && d.btn) {
+    add(`${cuts}切按鍵組（按鍵 ${d.btn} ×${cuts} + 絕緣框架 ${d.frame} ×${cuts<=3?1:2}）`, n);
+    return parts;
+  }
+  // 混合類（含按鍵+插座）
+  const comboCuts = SS.comboCuts[type];
+  if (comboCuts !== undefined) {
+    add(`${comboCuts}切按鍵組（按鍵 ${d.btn} ×${comboCuts} + 絕緣框架 ${d.frame} ×1）`, n);
+    if (d.sock) {
+      d.sock.split('+').forEach(s => add(`插座 ${s.trim()}`, n));
+    }
+    return parts;
+  }
+  // 插座類
+  if (d.sock && !d.frame) {
+    d.sock.split('+').forEach(s => add(`${s.trim()}`, n));
+    return parts;
+  }
+  // 弱電類
+  if (d.sock && d.frame) {
+    const sockQty = d.sockQty || 1;
+    d.sock.split('+').forEach(s => add(`${s.trim()} ×${sockQty}`, n));
+    add(`絕緣框架 ${d.frame}`, n);
+    return parts;
+  }
+  // 盲蓋（只有外蓋板）
+  return parts;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RISNA getParts（顏色單維度，無橫直）
+// ═══════════════════════════════════════════════════════════
+function getPartsRisna(type, color, qty) {
+  const n = parseInt(qty) || 1;
+  const parts = {};
+  const add = (name, count) => { parts[name] = (parts[name] || 0) + count; };
+  const d = RN.data[type]?.[color];
+  if (!d) { add(`（查無料號：${type}/${color}）`, n); return parts; }
+
+  add(`外蓋板 ${d.cover}`, n);
+
+  // 開關：1切/2切/3切
+  if (d.btn && !d.combo && !d.sock) {
+    const cutMap = {'單連1切開關':1,'單連2切開關':2,'單連3切開關':3,'緊急押釦':1,'電鈴':1};
+    const cuts = cutMap[type] || 1;
+    add(`${cuts}切按鍵 ${d.btn} ×${cuts}`, n);
+    return parts;
+  }
+  // 4切 = 2切×2
+  if (d.btn2 && d.cnt === 2 && !d.btn3) {
+    add(`2切按鍵 ${d.btn2} ×2`, n);
+    return parts;
+  }
+  // 5切 = 2切×1 + 3切×1
+  if (d.btn2 && d.btn3 && !d.cnt) {
+    add(`2切按鍵 ${d.btn2} ×1`, n);
+    add(`3切按鍵 ${d.btn3} ×1`, n);
+    return parts;
+  }
+  // 6切 = 3切×2
+  if (d.btn3 && d.cnt === 2) {
+    add(`3切按鍵 ${d.btn3} ×2`, n);
+    return parts;
+  }
+  // 混合類（combo 料號含按鍵+零件+框架）
+  if (d.combo) {
+    add(`組合模組 ${d.combo}（含按鍵+零件+框架）`, n);
+    return parts;
+  }
+  // 插座類
+  if (d.sock && !d.frame) {
+    d.sock.split('+').forEach(s => add(`${s.trim()}`, n));
+    return parts;
+  }
+  // 弱電類
+  if (d.sock && d.frame) {
+    const sockQty = d.sockQty || 1;
+    d.sock.split('+').forEach(s => add(`${s.trim()} ×${sockQty}`, n));
+    add(`絕緣框架 ${d.frame}`, n);
+    return parts;
+  }
+  // 盲蓋（只有外蓋板）
+  return parts;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN getParts dispatcher
+// ═══════════════════════════════════════════════════════════
+function getParts(item) {
+  if (item.custom) return item.customParts || {};
+  const {type, coverColor, partColor, dir, qty, series} = item;
+  if (series === 'Glatima')   return getPartsGlatima(type, coverColor, partColor, dir, qty);
+  if (series === 'So-style')  return getPartsSoStyle(type, coverColor, qty);   // coverColor = 顏色（單維度）
+  if (series === 'Risna')     return getPartsRisna(type, coverColor, qty);     // coverColor = 顏色（單維度）
+  return {};
+}
+
+// ── UI STATE ──────────────────────────────────────────────────
+let items = [];
+let deleteTargetIdx = null;
+let editTargetIdx = null;
+
+function getSeries() { return document.getElementById('panelSeries').value; }
+
+function onSeriesChange() {
+  rebuildTypeSelect('addType');
+  rebuildTypeSelect('editType');
+  rebuildCoverColorSelect('addCoverColor');
+  rebuildCoverColorSelect('editCoverColor');
+  // So-style / Risna 隱藏零件色與方向欄
+  const oneColor = isOneColorSeries(getSeries());
+  ['addPartColor','addDir'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.closest('div').style.display = oneColor ? 'none' : '';
+  });
+  document.querySelector('label[for="addDir"]')?.closest('div') && null;
+  onTypeChange();
+  renderItems();
+}
+
+function rebuildTypeSelect(id) {
+  const sel = document.getElementById(id);
+  const series = getSeries();
+  const groups = TYPE_GROUPS[series] || TYPE_GROUPS['So-style'];
+  sel.innerHTML = groups.map(g =>
+    `<optgroup label="${g.group}">${g.types.map(t => `<option value="${t}">${t}</option>`).join('')}</optgroup>`
+  ).join('');
+}
+
+function rebuildCoverColorSelect(id) {
+  const sel = document.getElementById(id);
+  const series = getSeries();
+  const colors = COVER_COLORS[series] || ['白','灰','黑'];
+  sel.innerHTML = colors.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function rebuildPartColorSelect(id, type) {
+  const sel = document.getElementById(id);
+  const series = getSeries();
+  const colors = getPartColors(series, type);
+  sel.innerHTML = colors.map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.disabled = (colors.length === 0);
+}
+
+function onTypeChange() {
+  const type = document.getElementById('addType').value;
+  rebuildPartColorSelect('addPartColor', type);
+  // 自訂組合開啟modal
+  if (type === '自訂組合') {
+    openCustomModal();
+    // reset select
+    const sel = document.getElementById('addType');
+    sel.selectedIndex = 0;
+  }
+}
+function onEditTypeChange() {
+  const type = document.getElementById('editType').value;
+  rebuildPartColorSelect('editPartColor', type);
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderItems() {
+  const tbody = document.getElementById('itemBody');
+  const series = getSeries();
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">尚無項目，請新增面板項目</td></tr>';
+  } else {
+    tbody.innerHTML = items.map((it, i) => {
+      const parts = getParts({...it, series});
+      const partsHtml = Object.entries(parts).map(([k,v]) =>
+        `<span${it.custom?' class="custom-tag"':''}>${k} ×${v}</span>`
+      ).join('');
+      const coverColorLabel = it.custom ? '—' : (it.coverColor || '—');
+      const partColorLabel  = it.custom ? '—' : (it.partColor  || '—');
+      const dirLabel = it.custom ? '—' : (it.dir || '橫');
+      const oneColor = isOneColorSeries(it.series || getSeries());
+      return `<tr>
+        <td>${it.space}</td>
+        <td><span class="series-tag" style="font-size:10px">${coverColorLabel}</span></td>
+        <td>${it.custom ? `<em style="color:var(--gold2)">${it.label||'自訂組合'}</em>` : it.type}</td>
+        <td>${oneColor ? '' : `<span class="series-tag" style="font-size:10px">${partColorLabel}</span>`}</td>
+        <td>${oneColor ? '' : dirLabel}</td>
+        <td><span class="qty-badge">${it.qty}</span></td>
+        <td class="parts">${partsHtml}</td>
+        <td class="td-actions"><div class="row-actions">
+          ${!it.custom ? `<button class="btn sm" onclick="openEditModal(${i})">編輯</button>` : ''}
+          <button class="btn sm danger" onclick="openDeleteModal(${i})">刪除</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+  renderSummary();
+}
+
+function renderSummary() {
+  const el = document.getElementById('summaryContent');
+  const series = getSeries();
+  if (!items.length) { el.innerHTML = '<div class="empty">新增項目後將顯示統計</div>'; return; }
+  const totals = {};
+  items.forEach(it => {
+    Object.entries(getParts({...it, series})).forEach(([k,v]) => { totals[k] = (totals[k]||0)+v; });
+  });
+  const sorted = Object.entries(totals).sort((a,b) => a[0].localeCompare(b[0]));
+  el.innerHTML = `<div class="summary-grid">${sorted.map(([k,v])=>`
+    <div class="summary-item">
+      <span class="part-name">${k}</span>
+      <span class="part-qty">${v}<span class="part-unit">個</span></span>
+    </div>`).join('')}</div>`;
+}
+
+// ── ADD ───────────────────────────────────────────────────────
+function addItem() {
+  const space = document.getElementById('addSpace').value.trim();
+  const coverColor = document.getElementById('addCoverColor').value;
+  const type = document.getElementById('addType').value;
+  const partColor = document.getElementById('addPartColor').value;
+  const qty = parseInt(document.getElementById('addQty').value) || 1;
+  const dir = '橫'; // default; editable after
+  if (!space) { showNotif('請填寫空間名稱'); return; }
+  if (type === '自訂組合') return;
+  items.push({ space, coverColor, type, partColor, dir, qty, series: getSeries() });
+  document.getElementById('addSpace').value = '';
+  document.getElementById('addQty').value = '';
+  renderItems();
+  showNotif('已新增項目');
+}
+
+// ── DELETE ────────────────────────────────────────────────────
+function openDeleteModal(i) { deleteTargetIdx=i; document.getElementById('deleteModal').classList.add('open'); }
+function closeDeleteModal() { deleteTargetIdx=null; document.getElementById('deleteModal').classList.remove('open'); }
+function confirmDelete() { if(deleteTargetIdx!==null){items.splice(deleteTargetIdx,1);renderItems();showNotif('已刪除項目');} closeDeleteModal(); }
+
+// ── EDIT ──────────────────────────────────────────────────────
+function openEditModal(i) {
+  editTargetIdx = i;
+  const it = items[i];
+  document.getElementById('editSpace').value = it.space;
+  rebuildCoverColorSelect('editCoverColor');
+  document.getElementById('editCoverColor').value = it.coverColor || '';
+  rebuildTypeSelect('editType');
+  document.getElementById('editType').value = it.type;
+  rebuildPartColorSelect('editPartColor', it.type);
+  document.getElementById('editPartColor').value = it.partColor || '';
+  document.getElementById('editDir').value = it.dir || '橫';
+  document.getElementById('editQty').value = it.qty;
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal() { editTargetIdx=null; document.getElementById('editModal').classList.remove('open'); }
+function confirmEdit() {
+  if (editTargetIdx===null) return;
+  items[editTargetIdx] = {
+    ...items[editTargetIdx],
+    space:      document.getElementById('editSpace').value.trim() || items[editTargetIdx].space,
+    coverColor: document.getElementById('editCoverColor').value,
+    type:       document.getElementById('editType').value,
+    partColor:  document.getElementById('editPartColor').value,
+    dir:        document.getElementById('editDir').value,
+    qty:        parseInt(document.getElementById('editQty').value)||1,
+    series:     getSeries(),
+  };
+  renderItems(); showNotif('已更新項目'); closeEditModal();
+}
+
+// ── CUSTOM MODAL ──────────────────────────────────────────────
+function openCustomModal() {
+  document.getElementById('customSpace').value = document.getElementById('addSpace').value || '';
+  document.getElementById('customLabel').value = '';
+  const list = document.getElementById('customPartsList');
+  list.innerHTML = '';
+  addCustomPartRow();
+  document.getElementById('customModal').classList.add('open');
+}
+function closeCustomModal() { document.getElementById('customModal').classList.remove('open'); }
+function addCustomPartRow() {
+  const list = document.getElementById('customPartsList');
+  const row = document.createElement('div');
+  row.className = 'custom-part-row';
+  row.innerHTML = `
+    <input type="text" placeholder="零件料號或說明" style="font-size:13px">
+    <input type="text" placeholder="數量" style="font-size:13px;text-align:center">
+    <button class="btn sm danger" onclick="this.parentElement.remove()">✕</button>`;
+  list.appendChild(row);
+}
+function confirmCustom() {
+  const space = document.getElementById('customSpace').value.trim();
+  const label = document.getElementById('customLabel').value.trim() || '自訂組合';
+  if (!space) { showNotif('請填寫空間名稱'); return; }
+  const customParts = {};
+  document.querySelectorAll('.custom-part-row').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const name = inputs[0].value.trim();
+    const qty  = parseInt(inputs[1].value) || 1;
+    if (name) customParts[name] = (customParts[name]||0) + qty;
+  });
+  if (!Object.keys(customParts).length) { showNotif('請至少填入一個零件'); return; }
+  items.push({ space, label, custom:true, customParts, qty:1, series:getSeries() });
+  renderItems(); showNotif('已新增自訂組合'); closeCustomModal();
+}
+
+// ── JSON ──────────────────────────────────────────────────────
+function exportJSON() {
+  const data = { projectName:document.getElementById('projectName').value, panelSeries:getSeries(), items, exportedAt:new Date().toISOString() };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download = (data.projectName||'面板訂購')+'_'+new Date().toLocaleDateString('zh-TW').replace(/\//g,'-')+'.json';
+  a.click(); showNotif('已匯出 JSON');
+}
+function importData() { document.getElementById('fileInput').click(); }
+function handleImport(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      document.getElementById('projectName').value = data.projectName||'';
+      document.getElementById('panelSeries').value = data.panelSeries||'Glatima';
+      onSeriesChange();
+      items = data.items||[];
+      renderItems(); showNotif('已匯入資料');
+    } catch { showNotif('檔案格式錯誤'); }
+  };
+  reader.readAsText(file); e.target.value='';
+}
+
+// ── PDF ───────────────────────────────────────────────────────
+function exportPDF() {
+  const projectName = document.getElementById('projectName').value||'面板訂購';
+  const series = getSeries();
+  const date = new Date().toLocaleDateString('zh-TW');
+  const totals = {};
+  items.forEach(it => {
+    Object.entries(getParts({...it,series})).forEach(([k,v])=>{totals[k]=(totals[k]||0)+v;});
+  });
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${projectName}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=DM+Mono&display=swap');
+    body{font-family:'Noto Sans TC',sans-serif;margin:36px;color:#2c2820;}
+    h1{font-size:20px;font-weight:400;margin-bottom:4px;}
+    .meta{font-size:11px;color:#9e9488;margin-bottom:24px;}
+    h2{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#9e9488;border-bottom:1px solid #d8d2c8;padding-bottom:5px;margin:20px 0 10px;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{text-align:left;font-size:9px;letter-spacing:.1em;color:#9e9488;padding:5px 8px;border-bottom:1px solid #d8d2c8;}
+    td{padding:7px 8px;border-bottom:1px solid #eeebe5;vertical-align:top;}
+    .parts{font-size:10px;color:#6b6258;line-height:1.9;font-family:'DM Mono',monospace;}
+    .sumgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;}
+    .sitem{border:1px solid #d8d2c8;padding:7px 10px;border-radius:2px;display:flex;justify-content:space-between;gap:8px;}
+    .sname{font-size:11px;} .sqty{font-family:'DM Mono',monospace;font-size:14px;white-space:nowrap;}
+  </style></head><body>
+  <h1>${projectName}</h1>
+  <div class="meta">面板系列：${series}　／　日期：${date}</div>
+  <h2>項目明細</h2>
+  <table><thead><tr><th>空間</th><th>蓋板色</th><th>類型</th><th>零件色</th><th>方向</th><th>數量</th><th>拆分零件</th></tr></thead>
+  <tbody>${items.map(it=>{
+    const p=getParts({...it,series});
+    return `<tr><td>${it.space}</td><td>${it.coverColor||'—'}</td><td>${it.custom?(it.label||'自訂'):it.type}</td><td>${it.partColor||'—'}</td><td>${it.dir||'—'}</td><td>${it.qty}</td>
+    <td class="parts">${Object.entries(p).map(([k,v])=>`${k} ×${v}`).join('<br>')}</td></tr>`;
+  }).join('')}</tbody></table>
+  <h2>零件統計匯總</h2>
+  <div class="sumgrid">${Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>
+    `<div class="sitem"><span class="sname">${k}</span><span class="sqty">${v}<small> 個</small></span></div>`
+  ).join('')}</div>
+  <script>window.onload=()=>setTimeout(()=>{window.print();},400);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+// ── NOTIF ─────────────────────────────────────────────────────
+function showNotif(msg) {
+  const el=document.getElementById('notif'); el.textContent=msg;
+  el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+(function init() {
+  rebuildTypeSelect('addType');
+  rebuildTypeSelect('editType');
+  rebuildCoverColorSelect('addCoverColor');
+  rebuildCoverColorSelect('editCoverColor');
+  rebuildPartColorSelect('addPartColor', '單連1切開關');
+  rebuildPartColorSelect('editPartColor', '單連1切開關');
+  document.getElementById('addQty').addEventListener('keydown', e=>{ if(e.key==='Enter') addItem(); });
+})();
+</script>
+</body>
+</html>
