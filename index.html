@@ -37,6 +37,8 @@
   label{display:block;font-size:12px;letter-spacing:.08em;color:var(--text3);margin-bottom:5px;}
   input[type="text"],select{width:100%;font-family:'Noto Sans TC',sans-serif;font-size:15px;padding:10px 13px;border:1px solid var(--border);border-radius:2px;background:var(--bg);color:var(--text);transition:border-color .2s;outline:none;}
   input[type="text"]:focus,select:focus{border-color:var(--gold2);}
+  input.input-error{border:2px solid var(--red)!important;}
+  input.input-error:focus{border-color:var(--red)!important;}
   input:disabled,select:disabled{opacity:.5;background:var(--bg3);}
   .add-form{display:grid;grid-template-columns:1fr 1fr 1.8fr 0.8fr 0.6fr auto;gap:10px;align-items:end;}
   .add-form>div{display:flex;flex-direction:column;}
@@ -107,7 +109,7 @@
       <div class="info-grid">
         <div>
           <label>案名</label>
-          <input type="text" id="projectName" placeholder="建案名稱 戶號">
+          <input type="text" id="projectName" placeholder="建案名稱 戶號" oninput="this.classList.remove('input-error')">
         </div>
         <div>
           <label>面板系列</label>
@@ -1102,7 +1104,7 @@ function confirmCustom() {
 
 // ── JSON ──────────────────────────────────────────────────────
 function exportJSON() {
-  if (!document.getElementById('projectName').value.trim()) { showNotif('請先填寫建案名稱／戶號'); return; }
+  if (!document.getElementById('projectName').value.trim()) { document.getElementById('projectName').classList.add('input-error'); showNotif('請先填寫建案名稱／戶號'); return; }
   const data = { projectName:document.getElementById('projectName').value, panelSeries:getSeries(), items, exportedAt:new Date().toISOString() };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
@@ -1128,7 +1130,7 @@ function handleImport(e) {
 
 // ── PDF ───────────────────────────────────────────────────────
 function exportPDF() {
-  if (!document.getElementById('projectName').value.trim()) { showNotif('請先填寫建案名稱／戶號'); return; }
+  if (!document.getElementById('projectName').value.trim()) { document.getElementById('projectName').classList.add('input-error'); showNotif('請先填寫建案名稱／戶號'); return; }
   const projectName = document.getElementById('projectName').value||'面板訂購';
   const series = getSeries();
   const date = new Date().toLocaleDateString('zh-TW');
@@ -1172,7 +1174,7 @@ function exportPDF() {
 
 // ── JPG ───────────────────────────────────────────────────────
 function exportJPG() {
-  if (!document.getElementById('projectName').value.trim()) { showNotif('請先填寫建案名稱／戶號'); return; }
+  if (!document.getElementById('projectName').value.trim()) { document.getElementById('projectName').classList.add('input-error'); showNotif('請先填寫建案名稱／戶號'); return; }
   if (typeof html2canvas === 'undefined') { showNotif('載入中，請稍後再試'); return; }
   const addSection = document.querySelector('#addSpace').closest('section');
   addSection.style.display = 'none';
