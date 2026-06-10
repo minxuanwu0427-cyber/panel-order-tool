@@ -107,7 +107,7 @@
       <div class="info-grid">
         <div>
           <label>案名</label>
-          <input type="text" id="projectName" placeholder="例：建案名稱 戶號">
+          <input type="text" id="projectName" placeholder="建案名稱 戶號">
         </div>
         <div>
           <label>面板系列</label>
@@ -1102,6 +1102,7 @@ function confirmCustom() {
 
 // ── JSON ──────────────────────────────────────────────────────
 function exportJSON() {
+  if (!document.getElementById('projectName').value.trim()) { showNotif('請先填寫建案名稱／戶號'); return; }
   const data = { projectName:document.getElementById('projectName').value, panelSeries:getSeries(), items, exportedAt:new Date().toISOString() };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
@@ -1127,6 +1128,7 @@ function handleImport(e) {
 
 // ── PDF ───────────────────────────────────────────────────────
 function exportPDF() {
+  if (!document.getElementById('projectName').value.trim()) { showNotif('請先填寫建案名稱／戶號'); return; }
   const projectName = document.getElementById('projectName').value||'面板訂購';
   const series = getSeries();
   const date = new Date().toLocaleDateString('zh-TW');
@@ -1170,6 +1172,7 @@ function exportPDF() {
 
 // ── JPG ───────────────────────────────────────────────────────
 function exportJPG() {
+  if (!document.getElementById('projectName').value.trim()) { showNotif('請先填寫建案名稱／戶號'); return; }
   if (typeof html2canvas === 'undefined') { showNotif('載入中，請稍後再試'); return; }
   const addSection = document.querySelector('#addSpace').closest('section');
   addSection.style.display = 'none';
