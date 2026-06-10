@@ -48,8 +48,9 @@
   tbody td{padding:10px 12px;vertical-align:top;}
   tbody td:first-child{min-width:72px;white-space:nowrap;}
   td.parts{font-size:12px;color:var(--text2);line-height:1.9;}
-  td.parts span{display:inline-block;background:var(--bg3);border:1px solid var(--border);padding:1px 8px;border-radius:20px;margin:2px 3px 2px 0;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);}
+  td.parts span{display:block;background:var(--bg3);border:1px solid var(--border);padding:1px 8px;border-radius:20px;margin:2px 0;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);}
   td.parts span.custom-tag{background:#f0ede7;border-color:var(--gold);color:var(--gold2);}
+  td.parts span.invalid-tag{background:#f5e8e6;border-color:#d4b4ae;color:var(--red);}
   .qty-badge{display:inline-block;background:var(--accent2);color:var(--surface);font-family:'DM Mono',monospace;font-size:12px;padding:2px 10px;border-radius:20px;}
   .row-actions{display:flex;gap:6px;opacity:0;pointer-events:none;transition:opacity .15s;white-space:nowrap;}
   tbody tr:hover .row-actions{opacity:1;pointer-events:auto;}
@@ -221,19 +222,30 @@
 <!-- 自訂組合 modal -->
 <div class="modal-overlay" id="customModal">
   <div class="modal">
-    <h3>自訂組合</h3>
-    <p style="margin-bottom:14px;">手動輸入零件料號與數量，結果會加入匯總。</p>
-    <div style="margin-bottom:12px;">
-      <label>空間</label>
-      <input type="text" id="customSpace" placeholder="例：玄關" list="spaceList" style="margin-bottom:10px;">
-      <label>說明（顯示於列表）</label>
-      <input type="text" id="customLabel" placeholder="例：客廳雙連混合面板">
+    <h3 id="customModalTitle">自訂組合</h3>
+    <div class="edit-grid" style="margin-bottom:12px;">
+      <div>
+        <label>空間</label>
+        <input type="text" id="customSpace" placeholder="例：玄關" list="spaceList">
+      </div>
+      <div>
+        <label>說明（列表顯示）</label>
+        <input type="text" id="customLabel" placeholder="例：客廳雙連混合面板">
+      </div>
+      <div>
+        <label>蓋板色（選填）</label>
+        <input type="text" id="customCoverColor" placeholder="例：玻璃/霧黑">
+      </div>
+      <div>
+        <label>零件色（選填）</label>
+        <input type="text" id="customPartColor" placeholder="例：陶瓷白">
+      </div>
     </div>
     <div class="custom-parts-list" id="customPartsList"></div>
     <button class="btn sm" onclick="addCustomPartRow()" style="margin-bottom:16px;">＋ 新增零件</button>
     <div class="modal-actions">
       <button class="btn" onclick="closeCustomModal()">取消</button>
-      <button class="btn primary" onclick="confirmCustom()">加入列表</button>
+      <button class="btn primary" onclick="confirmCustom()">儲存</button>
     </div>
   </div>
 </div>
@@ -486,90 +498,188 @@ function getPartColors(series, type) {
 // ═══════════════════════════════════════════════════════════
 // GLATIMA getParts
 // ═══════════════════════════════════════════════════════════
+
+// 弱電零件名稱對照
+const GL_WEAK_NAMES = {
+  '單孔網路':    { sock: 'CAT6網路插座',   cosmetic: '化妝蓋板（1孔）' },
+  '雙孔網路':    { sock: 'CAT6網路插座',   cosmetic: '化妝蓋板（2孔）' },
+  '三孔網路':    { sock: 'CAT6網路插座',   cosmetic: '化妝蓋板（3孔）' },
+  '單孔電話':    { sock: '電話單插座',     cosmetic: '化妝蓋板（1孔）' },
+  '雙孔電話':    { sock: '電話雙插座',     cosmetic: '化妝蓋板（2孔）' },
+  '單孔電視':    { sock: 'TV插座',         cosmetic: '化妝蓋板（1孔）' },
+  '雙孔電視':    { sock: 'TV插座',         cosmetic: '化妝蓋板（2孔）' },
+  '電話+網路':   { sock: '電話單插座+CAT6網路插座', cosmetic: '化妝蓋板（2孔）' },
+  '電視+網路':   { sock: 'TV插座+CAT6網路插座',     cosmetic: '化妝蓋板（2孔）' },
+  '電視+電話':   { sock: 'TV插座+電話單插座',       cosmetic: '化妝蓋板（2孔）' },
+  '雙網路+單電話':{ sock: 'CAT6網路插座+電話單插座', cosmetic: '化妝蓋板（3孔）' },
+  '雙網路+單電視':{ sock: 'CAT6網路插座+TV插座',    cosmetic: '化妝蓋板（3孔）' },
+};
+
+// 插座零件名稱對照
+const GL_SOCK_NAMES = {
+  '2.0接地雙插座':        '2.0接地雙插座',
+  '2.0接地雙插座(緊急)':  '2.0接地雙插座（緊急）',
+  '5.5接地單插座':        '5.5接地單插座',
+  '5.5接地單插座(緊急)':  '5.5接地單插座（緊急）',
+  '5.5接地雙插座':        '5.5接地雙插座',
+  '5.5接地雙插座(緊急)':  '5.5接地雙插座（緊急）',
+  '220V接地插座':         '220V接地插座',
+  '220V接地插座(緊急)':   '220V接地插座（緊急）',
+  '接地單插+USB/C(快充)': '接地單插+USB/C快充插座',
+  '緊急押釦':             '緊急押釦',
+  '電鈴':                 '電鈴按鍵',
+};
+
+// 混合類名稱對照
+const GL_COMBO_NAMES = {
+  '單連1切開關+1插座':       '1切開關+接地插座 組合模組',
+  '單連1切開關+雙USB':       '1切開關+雙USB 組合模組',
+  '單連1切開關+雙USB(快充)': '1切開關+雙USB快充 組合模組',
+  '單連1切開關+USB/C(快充)': '1切開關+USB/C快充 組合模組',
+};
+
+// So-style 零件名稱對照
+const SS_SOCK_NAMES = {
+  '單連1切開關+1插座':         '接地插座',
+  '雙連2切開關+2.0雙插座':     '2.0接地雙插座',
+  '雙連2切開關+5.5雙插座':     '5.5接地雙插座',
+  '2.0接地雙插座':             '2.0接地雙插座',
+  '5.5接地單插座':             '5.5接地單插座',
+  '5.5接地雙插座':             '5.5接地雙插座',
+  '220V接地插座':              '220V接地插座',
+  '單孔網路':  'CAT6網路插座',
+  '雙孔網路':  'CAT6網路插座',
+  '單孔電話':  '電話插座',
+  '雙孔電話':  '電話插座',
+  '電話+網路': '電話插座+CAT6網路插座',
+  '電視+網路': 'TV插座+CAT6網路插座',
+  '單孔電視':  'TV插座',
+};
+
+// Risna 零件名稱對照
+const RN_SOCK_NAMES = {
+  '2.0接地雙插座':             '2.0接地雙插座',
+  '2.0接地雙插座(緊急)':       '2.0接地雙插座（緊急）',
+  '5.5接地單插座':             '5.5接地單插座',
+  '5.5接地單插座(緊急)':       '5.5接地單插座（緊急）',
+  '5.5接地雙插座':             '5.5接地雙插座',
+  '5.5接地雙插座(緊急)':       '5.5接地雙插座（緊急）',
+  '220V接地插座':              '220V接地插座',
+  '220V接地插座(緊急)':        '220V接地插座（緊急）',
+  '接地單插+USB/C(快充)':      '接地單插+USB/C快充插座',
+  '緊急押釦':                  '緊急押釦按鍵',
+  '電鈴':                      '電鈴按鍵',
+  '單孔網路':  'CAT6網路插座',
+  '雙孔網路':  'CAT6網路插座',
+  '單孔電話':  '電話插座',
+  '雙孔電話':  '電話插座',
+  '電話+網路': '電話插座+CAT6網路插座',
+  '電視+網路': 'TV插座+CAT6網路插座',
+  '單孔電視':  'TV插座',
+};
+
 function getPartsGlatima(type, coverColor, partColor, dir, qty) {
   const n = parseInt(qty) || 1;
   const parts = {};
   const add = (name, count) => { parts[name] = (parts[name] || 0) + count; };
 
   const isDouble = GL.isDouble.includes(type);
-  const coverIdx = isDouble
-    ? (dir === '橫' ? 2 : 3)
-    : (dir === '橫' ? 0 : 1);
+  const coverIdx = isDouble ? (dir === '橫' ? 2 : 3) : (dir === '橫' ? 0 : 1);
   const coverPn = GL.cover[coverColor]?.[coverIdx];
-  const coverLabel = `外蓋板 ${coverPn || '（未知料號）'}`;
+  const dirLabel = dir === '橫' ? '橫式' : '直式';
+  const connLabel = isDouble ? '雙連' : '單連';
+  const coverLabel = coverPn
+    ? `${connLabel}${dirLabel}外蓋板 ${coverPn}`
+    : `${connLabel}${dirLabel}外蓋板（無此料號）`;
 
-  // 開關類
+  // ── 開關類 ──
   const switchMap = {'單連1切開關':1,'單連2切開關':2,'單連3切開關':3,'雙連4切開關':4,'雙連5切開關':5,'雙連6切開關':6};
   if (type in switchMap) {
     add(coverLabel, n);
     const cuts = switchMap[type];
     if (cuts === 1) {
-      const pn = GL.btn['單連1切開關'][partColor];
-      add(`1切按鍵組（按鍵 ${pn} ×1）`, n);
+      const pn = GL.btn['單連1切開關']?.[partColor];
+      add(`1切按鍵組 ${pn || '（無此色）'}`, n);
     } else if (cuts === 2) {
-      const pn = GL.btn['單連2切開關'][partColor];
-      add(`2切按鍵組（按鍵 ${pn} ×1）`, n);
+      const pn = GL.btn['單連2切開關']?.[partColor];
+      add(`2切按鍵組 ${pn || '（無此色）'}`, n);
     } else if (cuts === 3) {
-      const pn = GL.btn['單連3切開關'][partColor];
-      add(`3切按鍵組（按鍵 ${pn} ×1）`, n);
+      const pn = GL.btn['單連3切開關']?.[partColor];
+      add(`3切按鍵組 ${pn || '（無此色）'}`, n);
     } else if (cuts === 4) {
-      const pn2 = GL.btn['單連2切開關'][partColor];
-      add(`4切按鍵組（2切 ${pn2} ×2）`, n);
+      const pn2 = GL.btn['單連2切開關']?.[partColor];
+      add(`2切按鍵組 ${pn2 || '（無此色）'}`, n * 2);
     } else if (cuts === 5) {
-      const pn2 = GL.btn['單連2切開關'][partColor];
-      const pn3 = GL.btn['單連3切開關'][partColor];
-      add(`5切按鍵組（2切 ${pn2} ×1 + 3切 ${pn3} ×1）`, n);
+      const pn2 = GL.btn['單連2切開關']?.[partColor];
+      const pn3 = GL.btn['單連3切開關']?.[partColor];
+      add(`2切按鍵組 ${pn2 || '（無此色）'}`, n);
+      add(`3切按鍵組 ${pn3 || '（無此色）'}`, n);
     } else if (cuts === 6) {
-      const pn3 = GL.btn['單連3切開關'][partColor];
-      add(`6切按鍵組（3切 ${pn3} ×2）`, n);
+      const pn3 = GL.btn['單連3切開關']?.[partColor];
+      add(`3切按鍵組 ${pn3 || '（無此色）'}`, n * 2);
     }
     return parts;
   }
 
-  // 混合類（組合料號）
+  // ── 混合類 ──
   if (type in GL.combo) {
     add(coverLabel, n);
-    const pn = GL.combo[type][partColor];
-    add(`組合模組 ${pn || '（無此色）'}`, n);
+    const pn = GL.combo[type]?.[partColor];
+    const comboName = GL_COMBO_NAMES[type] || type;
+    add(`${comboName} ${pn || '（無此色）'}`, n);
     return parts;
   }
 
-  // 雙連盲蓋：外蓋板（雙連）+ 封口蓋板×2
+  // ── 雙連盲蓋 ──
   if (type === '雙連盲蓋') {
     add(coverLabel, n);
-    const pn = GL.part['雙連盲蓋'][partColor];
-    add(`封口蓋板 ${pn || '（無此色）'} ×2`, n);
+    const pn = GL.part['雙連盲蓋']?.[partColor];
+    add(`封口蓋板 ${pn || '（無此色）'}`, n * 2);
     return parts;
   }
-  // 單連盲蓋：外蓋板（單連）+ 封口蓋板×1
+  // ── 單連盲蓋 ──
   if (type === '單連盲蓋') {
     add(coverLabel, n);
-    const pn = GL.part['單連盲蓋'][partColor];
+    const pn = GL.part['單連盲蓋']?.[partColor];
     add(`封口蓋板 ${pn || '（無此色）'}`, n);
     return parts;
   }
 
-  // 插座類（自帶框架化妝蓋板）
+  // ── 弱電類 ──
+  if (type in GL.weakConfig) {
+    add(coverLabel, n);
+    const cfg = GL.weakConfig[type];
+    const wn = GL_WEAK_NAMES[type];
+    const partPn = GL.part[type]?.[partColor];
+    // 複合弱電（料號用+分隔）拆開各自命名
+    if (partPn && partPn.includes('+')) {
+      const pns = partPn.split('+').map(s => s.trim());
+      const names = (wn?.sock || type).split('+').map(s => s.trim());
+      pns.forEach((pn, i) => add(`${names[i] || '弱電模組'} ${pn}`, n));
+    } else if (partPn) {
+      const sockQty = (type === '雙孔網路' || type === '雙孔電視') ? 2 : 1;
+      add(`${wn?.sock || type} ${partPn}`, n * sockQty);
+    } else {
+      add(`${wn?.sock || type}（無此色）`, n);
+    }
+    const cosmeticPn = GL.cosmetic[cfg.holes]?.[partColor];
+    if (cosmeticPn) add(`${wn?.cosmetic || '化妝蓋板'} ${cosmeticPn}`, n);
+    if (cfg.frameColors.includes(partColor)) add(`絕緣框架 ${GL.frame}`, n);
+    return parts;
+  }
+
+  // ── 插座類（含特殊） ──
   const partPn = GL.part[type]?.[partColor];
   if (partPn !== undefined) {
     add(coverLabel, n);
-    if (partPn) add(`零件 ${partPn}`, n);
-    else add(`零件（無此色）`, n);
-    // 弱電另加化妝蓋板與絕緣框架
-    if (type in GL.weakConfig) {
-      const cfg = GL.weakConfig[type];
-      const cosmeticPn = GL.cosmetic[cfg.holes]?.[partColor];
-      if (cosmeticPn) add(`化妝蓋板 ${cosmeticPn}`, n);
-      if (cfg.frameColors.includes(partColor)) {
-        add(`絕緣框架 ${GL.frame}`, n);
-      }
-    }
+    const sockName = GL_SOCK_NAMES[type] || type;
+    add(partPn ? `${sockName} ${partPn}` : `${sockName}（無此色）`, n);
     return parts;
   }
 
   // fallback
   add(coverLabel, n);
-  add(`${type} 零件`, n);
+  add(`${type}`, n);
   return parts;
 }
 
@@ -585,30 +695,45 @@ function getPartsSoStyle(type, color, qty) {
 
   add(`外蓋板 ${d.cover}`, n);
 
+  // 輔助：依名稱對照 + sock PN 列組合（處理 + 分隔的複合弱電）
+  function addSockParts(sockPnStr, nameStr, baseQty) {
+    const pns = sockPnStr.split('+').map(s => s.trim());
+    if (pns.length === 1) {
+      add(`${nameStr} ${pns[0]}`, baseQty);
+    } else {
+      const names = nameStr.split('+').map(s => s.trim());
+      pns.forEach((s, i) => add(`${names[i] || '插座'} ${s}`, baseQty));
+    }
+  }
+
   // 開關類
   const cuts = SS.btnCuts[type];
   if (cuts !== undefined && d.btn) {
-    add(`${cuts}切按鍵組（按鍵 ${d.btn} ×${cuts} + 絕緣框架 ${d.frame} ×${cuts<=3?1:2}）`, n);
+    const frameQty = cuts <= 3 ? 1 : 2;
+    add(`按鍵 ${d.btn}`, n * cuts);
+    add(`絕緣框架 ${d.frame}`, n * frameQty);
     return parts;
   }
   // 混合類（含按鍵+插座）
   const comboCuts = SS.comboCuts[type];
   if (comboCuts !== undefined) {
-    add(`${comboCuts}切按鍵組（按鍵 ${d.btn} ×${comboCuts} + 絕緣框架 ${d.frame} ×1）`, n);
+    add(`按鍵 ${d.btn}`, n * comboCuts);
+    add(`絕緣框架 ${d.frame}`, n);
     if (d.sock) {
-      d.sock.split('+').forEach(s => add(`插座 ${s.trim()}`, n));
+      addSockParts(d.sock, SS_SOCK_NAMES[type] || type, n);
     }
     return parts;
   }
-  // 插座類
+  // 插座類（無 frame）
   if (d.sock && !d.frame) {
-    d.sock.split('+').forEach(s => add(`${s.trim()}`, n));
+    const sockQty = d.sockQty || 1;
+    addSockParts(d.sock, SS_SOCK_NAMES[type] || type, n * sockQty);
     return parts;
   }
-  // 弱電類
+  // 弱電類（有 frame）
   if (d.sock && d.frame) {
     const sockQty = d.sockQty || 1;
-    d.sock.split('+').forEach(s => add(`${s.trim()} ×${sockQty}`, n));
+    addSockParts(d.sock, SS_SOCK_NAMES[type] || type, n * sockQty);
     add(`絕緣框架 ${d.frame}`, n);
     return parts;
   }
@@ -628,43 +753,60 @@ function getPartsRisna(type, color, qty) {
 
   add(`外蓋板 ${d.cover}`, n);
 
-  // 開關：1切/2切/3切
+  // 輔助：依名稱對照 + sock PN 列組合（處理 + 分隔的複合弱電）
+  function addSockParts(sockPnStr, nameStr, baseQty) {
+    const pns = sockPnStr.split('+').map(s => s.trim());
+    if (pns.length === 1) {
+      add(`${nameStr} ${pns[0]}`, baseQty);
+    } else {
+      const names = nameStr.split('+').map(s => s.trim());
+      pns.forEach((s, i) => add(`${names[i] || '插座'} ${s}`, baseQty));
+    }
+  }
+
+  // 開關（1/2/3切）
+  const cutMap = {'單連1切開關':1,'單連2切開關':2,'單連3切開關':3};
+  if (d.btn && !d.combo && !d.sock && cutMap[type] !== undefined) {
+    const cuts = cutMap[type];
+    add(`${cuts}切按鍵 ${d.btn}`, n);
+    return parts;
+  }
+  // 緊急押釦 / 電鈴
   if (d.btn && !d.combo && !d.sock) {
-    const cutMap = {'單連1切開關':1,'單連2切開關':2,'單連3切開關':3,'緊急押釦':1,'電鈴':1};
-    const cuts = cutMap[type] || 1;
-    add(`${cuts}切按鍵 ${d.btn} ×${cuts}`, n);
+    const btnName = RN_SOCK_NAMES[type] || '按鍵';
+    add(`${btnName} ${d.btn}`, n);
     return parts;
   }
   // 4切 = 2切×2
   if (d.btn2 && d.cnt === 2 && !d.btn3) {
-    add(`2切按鍵 ${d.btn2} ×2`, n);
+    add(`2切按鍵 ${d.btn2}`, n * 2);
     return parts;
   }
   // 5切 = 2切×1 + 3切×1
   if (d.btn2 && d.btn3 && !d.cnt) {
-    add(`2切按鍵 ${d.btn2} ×1`, n);
-    add(`3切按鍵 ${d.btn3} ×1`, n);
+    add(`2切按鍵 ${d.btn2}`, n);
+    add(`3切按鍵 ${d.btn3}`, n);
     return parts;
   }
   // 6切 = 3切×2
   if (d.btn3 && d.cnt === 2) {
-    add(`3切按鍵 ${d.btn3} ×2`, n);
+    add(`3切按鍵 ${d.btn3}`, n * 2);
     return parts;
   }
-  // 混合類（combo 料號含按鍵+零件+框架）
+  // 混合類（combo 料號為完整組合模組）
   if (d.combo) {
-    add(`組合模組 ${d.combo}（含按鍵+零件+框架）`, n);
+    add(`組合模組 ${d.combo}`, n);
     return parts;
   }
-  // 插座類
+  // 插座類（無 frame）
   if (d.sock && !d.frame) {
-    d.sock.split('+').forEach(s => add(`${s.trim()}`, n));
+    addSockParts(d.sock, RN_SOCK_NAMES[type] || type, n);
     return parts;
   }
-  // 弱電類
+  // 弱電類（有 frame）
   if (d.sock && d.frame) {
     const sockQty = d.sockQty || 1;
-    d.sock.split('+').forEach(s => add(`${s.trim()} ×${sockQty}`, n));
+    addSockParts(d.sock, RN_SOCK_NAMES[type] || type, n * sockQty);
     add(`絕緣框架 ${d.frame}`, n);
     return parts;
   }
@@ -756,11 +898,13 @@ function renderItems() {
   } else {
     tbody.innerHTML = items.map((it, i) => {
       const parts = getParts({...it, series});
-      const partsHtml = Object.entries(parts).map(([k,v]) =>
-        `<span${it.custom?' class="custom-tag"':''}>${k} ×${v}</span>`
-      ).join('');
-      const coverColorLabel = it.custom ? '—' : (it.coverColor || '—');
-      const partColorLabel  = it.custom ? '—' : (it.partColor  || '—');
+      const partsHtml = Object.entries(parts).map(([k,v]) => {
+        const isInvalid = /無此項目|無此料號|無此色|查無料號/.test(k);
+        const cls = it.custom ? 'custom-tag' : (isInvalid ? 'invalid-tag' : '');
+        return `<span${cls ? ` class="${cls}"` : ''}>${k} ×${v}</span>`;
+      }).join('');
+      const coverColorLabel = it.coverColor || '—';
+      const partColorLabel  = it.partColor  || '—';
       const dirLabel = it.custom ? '—' : (it.dir || '橫');
       const oneColor = isOneColorSeries(it.series || getSeries());
       return `<tr>
@@ -772,7 +916,7 @@ function renderItems() {
         <td><span class="qty-badge">${it.qty}</span></td>
         <td class="parts">${partsHtml}</td>
         <td class="td-actions"><div class="row-actions">
-          ${!it.custom ? `<button class="btn sm" onclick="openEditModal(${i})">編輯</button>` : ''}
+          <button class="btn sm" onclick="${it.custom ? `openCustomModal(${i})` : `openEditModal(${i})`}">編輯</button>
           <button class="btn sm danger" onclick="openDeleteModal(${i})">刪除</button>
         </div></td>
       </tr>`;
@@ -851,39 +995,75 @@ function confirmEdit() {
 }
 
 // ── CUSTOM MODAL ──────────────────────────────────────────────
-function openCustomModal() {
-  document.getElementById('customSpace').value = document.getElementById('addSpace').value || '';
-  document.getElementById('customLabel').value = '';
+let customEditIdx = null;
+
+function openCustomModal(editIdx = null) {
+  customEditIdx = editIdx;
+  const isEdit = editIdx !== null;
+  document.getElementById('customModalTitle').textContent = isEdit ? '編輯自訂組合' : '自訂組合';
+  document.getElementById('customModal').querySelector('.btn.primary').textContent = isEdit ? '儲存' : '儲存';
+
   const list = document.getElementById('customPartsList');
   list.innerHTML = '';
-  addCustomPartRow();
+
+  if (isEdit) {
+    const it = items[editIdx];
+    document.getElementById('customSpace').value = it.space || '';
+    document.getElementById('customLabel').value = it.label || '';
+    document.getElementById('customCoverColor').value = it.coverColor || '';
+    document.getElementById('customPartColor').value = it.partColor || '';
+    Object.entries(it.customParts || {}).forEach(([name, qty]) => addCustomPartRow(name, qty));
+  } else {
+    document.getElementById('customSpace').value = document.getElementById('addSpace').value || '';
+    document.getElementById('customLabel').value = '';
+    document.getElementById('customCoverColor').value = '';
+    document.getElementById('customPartColor').value = '';
+    addCustomPartRow();
+  }
   document.getElementById('customModal').classList.add('open');
 }
-function closeCustomModal() { document.getElementById('customModal').classList.remove('open'); }
-function addCustomPartRow() {
+
+function closeCustomModal() {
+  customEditIdx = null;
+  document.getElementById('customModal').classList.remove('open');
+}
+
+function addCustomPartRow(name = '', qty = '') {
   const list = document.getElementById('customPartsList');
   const row = document.createElement('div');
   row.className = 'custom-part-row';
   row.innerHTML = `
-    <input type="text" placeholder="零件料號或說明" style="font-size:13px">
-    <input type="text" placeholder="數量" style="font-size:13px;text-align:center">
+    <input type="text" placeholder="零件名稱或料號" style="font-size:13px" value="${name}">
+    <input type="text" placeholder="數量" style="font-size:13px;text-align:center" value="${qty}">
     <button class="btn sm danger" onclick="this.parentElement.remove()">✕</button>`;
   list.appendChild(row);
 }
+
 function confirmCustom() {
   const space = document.getElementById('customSpace').value.trim();
   const label = document.getElementById('customLabel').value.trim() || '自訂組合';
+  const coverColor = document.getElementById('customCoverColor').value.trim();
+  const partColor  = document.getElementById('customPartColor').value.trim();
   if (!space) { showNotif('請填寫空間名稱'); return; }
   const customParts = {};
   document.querySelectorAll('.custom-part-row').forEach(row => {
     const inputs = row.querySelectorAll('input');
     const name = inputs[0].value.trim();
     const qty  = parseInt(inputs[1].value) || 1;
-    if (name) customParts[name] = (customParts[name]||0) + qty;
+    if (name) customParts[name] = (customParts[name] || 0) + qty;
   });
   if (!Object.keys(customParts).length) { showNotif('請至少填入一個零件'); return; }
-  items.push({ space, label, custom:true, customParts, qty:1, series:getSeries() });
-  renderItems(); showNotif('已新增自訂組合'); closeCustomModal();
+
+  const entry = { space, label, custom: true, customParts, qty: 1, series: getSeries(), coverColor, partColor };
+  if (customEditIdx !== null) {
+    items[customEditIdx] = entry;
+    showNotif('已更新自訂組合');
+  } else {
+    items.push(entry);
+    showNotif('已新增自訂組合');
+  }
+  renderItems();
+  closeCustomModal();
 }
 
 // ── JSON ──────────────────────────────────────────────────────
