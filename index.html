@@ -42,7 +42,7 @@
   .add-form>div{display:flex;flex-direction:column;}
   .table-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;font-size:14px;}
-  thead th{text-align:left;font-size:12px;font-weight:400;letter-spacing:.12em;color:var(--text3);padding:9px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  thead th{text-align:left;font-size:16px;font-weight:400;letter-spacing:.08em;color:var(--text3);padding:10px 13px;border-bottom:1px solid var(--border);white-space:nowrap;}
   thead th:first-child{min-width:72px;}
   tbody tr{border-bottom:1px solid var(--bg3);transition:background .15s;position:relative;}
   tbody tr:hover{background:var(--bg2);}
@@ -53,9 +53,15 @@
   td.parts span.custom-tag{background:#f0ede7;border-color:var(--gold);color:var(--gold2);}
   td.parts span.invalid-tag{background:#f5e8e6;border-color:#d4b4ae;color:var(--red);}
   .qty-badge{display:inline-block;background:var(--accent2);color:var(--surface);font-family:'DM Mono',monospace;font-size:13px;padding:3px 11px;border-radius:20px;}
-  .row-actions{display:flex;gap:6px;opacity:0;pointer-events:none;transition:opacity .15s;white-space:nowrap;}
+  table.one-color .col-part-color,table.one-color .col-dir{display:none;}
+  .card-action{background:var(--bg2);border-color:var(--border2);}
+  .row-actions{display:flex;flex-direction:column;gap:4px;opacity:0;pointer-events:none;transition:opacity .15s;}
   tbody tr:hover .row-actions{opacity:1;pointer-events:auto;}
-  td.td-actions{width:1px;white-space:nowrap;padding:8px 10px;vertical-align:middle;}
+  td.td-actions{width:36px;padding:8px 6px;vertical-align:top;}
+  .btn-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:3px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-size:14px;line-height:1;transition:all .15s;padding:0;font-family:sans-serif;}
+  .btn-icon:hover{background:var(--bg3);color:var(--text);}
+  .btn-icon.danger{color:var(--red);border-color:#d4b4ae;}
+  .btn-icon.danger:hover{background:#f5e8e6;}
   .summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
   .summary-item{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;font-size:14px;}
   .summary-item .part-name{color:var(--text2);flex:1;font-size:13px;}
@@ -117,7 +123,7 @@
 
   <!-- 新增項目 -->
   <section>
-    <div class="card">
+    <div class="card card-action">
       <div class="card-title">新增項目</div>
       <div class="add-form">
         <div>
@@ -157,14 +163,14 @@
     <div class="card">
       <div class="card-title">項目列表</div>
       <div class="table-wrap">
-        <table>
+        <table id="mainTable">
           <thead>
             <tr>
               <th>空間</th>
               <th>蓋板色</th>
               <th>類型</th>
-              <th>零件色</th>
-              <th>方向</th>
+              <th class="col-part-color">零件色</th>
+              <th class="col-dir">方向</th>
               <th>數量</th>
               <th>拆分零件（含料號）</th>
               <th></th>
@@ -689,6 +695,19 @@ function getPartsGlatima(type, coverColor, partColor, dir, qty) {
 // SO-STYLE getParts（顏色單維度，無橫直）
 // ═══════════════════════════════════════════════════════════
 
+// 從 Risna 外蓋板料號推導名稱
+function getRnCoverName(pn) {
+  if (!pn) return '外蓋板';
+  if (/6891/.test(pn)) return '單連盲蓋蓋板';
+  if (/6892/.test(pn)) return '雙連盲蓋蓋板';
+  if (/6101/.test(pn)) return '單連開關蓋板';
+  if (/6102/.test(pn)) return '雙連開關蓋板';
+  if (/6801/.test(pn)) return '1孔插座弱電用蓋板';
+  if (/6802/.test(pn)) return '2孔插座弱電用蓋板';
+  if (/6803/.test(pn)) return '3孔插座弱電用蓋板';
+  return '外蓋板';
+}
+
 // 從 So-style 外蓋板料號推導名稱
 function getSsCoverName(pn) {
   if (!pn) return '蓋板';
@@ -765,7 +784,7 @@ function getPartsRisna(type, color, qty) {
   const d = RN.data[type]?.[color];
   if (!d) { add(`（查無料號：${type}/${color}）`, n); return parts; }
 
-  add(`外蓋板 ${d.cover}`, n);
+  add(`${getRnCoverName(d.cover)} ${d.cover}`, n);
 
   // 輔助：依名稱對照 + sock PN 列組合（處理 + 分隔的複合弱電）
   function addSockParts(sockPnStr, nameStr, baseQty) {
@@ -859,6 +878,7 @@ function onSeriesChange() {
     if (el) el.closest('div').style.display = oneColor ? 'none' : '';
   });
   document.querySelector('label[for="addDir"]')?.closest('div') && null;
+  document.getElementById('mainTable')?.classList.toggle('one-color', oneColor);
   onTypeChange();
   renderItems();
 }
@@ -923,15 +943,15 @@ function renderItems() {
       const oneColor = isOneColorSeries(it.series || getSeries());
       return `<tr>
         <td>${it.space}</td>
-        <td><span class="series-tag" style="font-size:10px">${coverColorLabel}</span></td>
+        <td><span class="series-tag">${coverColorLabel}</span></td>
         <td>${it.custom ? `<em style="color:var(--gold2)">${it.label||'自訂組合'}</em>` : it.type}</td>
-        <td>${oneColor ? '' : `<span class="series-tag" style="font-size:10px">${partColorLabel}</span>`}</td>
-        <td>${oneColor ? '' : dirLabel}</td>
+        <td class="col-part-color">${oneColor ? '' : `<span class="series-tag">${partColorLabel}</span>`}</td>
+        <td class="col-dir">${oneColor ? '' : dirLabel}</td>
         <td><span class="qty-badge">${it.qty}</span></td>
         <td class="parts">${partsHtml}</td>
         <td class="td-actions"><div class="row-actions">
-          <button class="btn sm" onclick="${it.custom ? `openCustomModal(${i})` : `openEditModal(${i})`}">編輯</button>
-          <button class="btn sm danger" onclick="openDeleteModal(${i})">刪除</button>
+          <button class="btn-icon" title="編輯" onclick="${it.custom ? `openCustomModal(${i})` : `openEditModal(${i})`}">✎</button>
+          <button class="btn-icon danger" title="刪除" onclick="openDeleteModal(${i})">✕</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -1188,6 +1208,9 @@ function showNotif(msg) {
   rebuildPartColorSelect('addPartColor', '單連1切開關');
   rebuildPartColorSelect('editPartColor', '單連1切開關');
   document.getElementById('addQty').addEventListener('keydown', e=>{ if(e.key==='Enter') addItem(); });
+  // 初始化 table class
+  const initOneColor = isOneColorSeries(getSeries());
+  document.getElementById('mainTable')?.classList.toggle('one-color', initOneColor);
 })();
 </script>
 </body>
