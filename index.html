@@ -267,7 +267,7 @@
       </div>
       <div>
         <label>蓋板色（選填）</label>
-        <select id="customCoverColor"><option value="">（不填）</option></select>
+        <select id="customCoverColor" onchange="onCustomCoverColorChange()"><option value="">（不填）</option></select>
       </div>
       <div id="customPartColorField">
         <label>零件色（選填）</label>
@@ -1184,24 +1184,49 @@ function confirmEdit() {
 // ── CUSTOM MODAL ──────────────────────────────────────────────
 let customEditIdx = null;
 
-// 自訂組合：依系列取得零件色可選清單（僅 Glatima 有零件色維度）
-function getCustomPartColorOptions(series) {
-  if (series !== 'Glatima') return [];
+// 自訂組合：蓋板色選項（依系列；So-style 常用色僅白/黑）
+const CUSTOM_COVER_COLOR_OPTIONS = {
+  Glatima: COVER_COLORS.Glatima,
+  Risna: COVER_COLORS.Risna,
+  'So-style': ['白','黑'],
+};
+// 自訂組合：零件色選項（Risna/So-style 限縮為常用色，Glatima 給完整清單）
+const CUSTOM_PART_COLOR_OPTIONS = {
+  Risna: ['白','灰'],
+  'So-style': ['白','黑'],
+};
+function getGlatimaCustomPartColors() {
   const sets = [GL.partColors.switch, GL.partColors.other, GL.partColors.urgent, GL.partColors.limited2];
   return [...new Set(sets.flat())];
 }
 
-// 自訂組合：依目前選擇的系列重建蓋板色/零件色下拉選單（單一色系列隱藏零件色欄位）
-function onCustomSeriesChange() { rebuildCustomColorSelects(); }
+// 依蓋板色自動帶入零件色（Risna 用色號對應、So-style 同色沿用；Glatima 維持使用者自行選擇）
+function autoFillCustomPartColor() {
+  const series = document.getElementById('customSeries').value;
+  const coverColor = document.getElementById('customCoverColor').value;
+  const partSel = document.getElementById('customPartColor');
+  if (series === 'Risna') {
+    partSel.value = RISNA_PART_COLOR_MAP[coverColor] || '';
+  } else if (series === 'So-style') {
+    partSel.value = coverColor || '';
+  }
+}
+
+function onCustomSeriesChange() {
+  rebuildCustomColorSelects();
+  autoFillCustomPartColor();
+}
+function onCustomCoverColorChange() {
+  autoFillCustomPartColor();
+}
+
 function rebuildCustomColorSelects() {
   const series = document.getElementById('customSeries').value;
-  const coverColors = COVER_COLORS[series] || [];
+  const coverColors = CUSTOM_COVER_COLOR_OPTIONS[series] || [];
   document.getElementById('customCoverColor').innerHTML =
     '<option value="">（不填）</option>' + coverColors.map(c => `<option value="${c}">${c}</option>`).join('');
 
-  const oneColor = isOneColorSeries(series);
-  document.getElementById('customPartColorField').style.display = oneColor ? 'none' : '';
-  const partColors = getCustomPartColorOptions(series);
+  const partColors = series === 'Glatima' ? getGlatimaCustomPartColors() : (CUSTOM_PART_COLOR_OPTIONS[series] || []);
   document.getElementById('customPartColor').innerHTML =
     '<option value="">（不填）</option>' + partColors.map(c => `<option value="${c}">${c}</option>`).join('');
 }
