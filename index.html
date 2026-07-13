@@ -186,6 +186,14 @@
     </div>
   </section>
 
+  <!-- 品項統計 -->
+  <section>
+    <div class="card">
+      <div class="card-title">品項統計</div>
+      <div id="typeSummaryContent"><div class="empty">新增項目後將顯示統計</div></div>
+    </div>
+  </section>
+
   <!-- 零件統計 -->
   <section>
     <div class="card">
@@ -958,7 +966,24 @@ function renderItems() {
       </tr>`;
     }).join('');
   }
+  renderTypeSummary();
   renderSummary();
+}
+
+function renderTypeSummary() {
+  const el = document.getElementById('typeSummaryContent');
+  if (!items.length) { el.innerHTML = '<div class="empty">新增項目後將顯示統計</div>'; return; }
+  const totals = {};
+  items.forEach(it => {
+    const label = it.custom ? (it.label || '自訂組合') : it.type;
+    totals[label] = (totals[label] || 0) + (it.qty || 0);
+  });
+  const sorted = Object.entries(totals).sort((a,b) => a[0].localeCompare(b[0]));
+  el.innerHTML = `<div class="summary-grid">${sorted.map(([k,v])=>`
+    <div class="summary-item">
+      <span class="part-name">${k}</span>
+      <span class="part-qty">${v}<span class="part-unit">個</span></span>
+    </div>`).join('')}</div>`;
 }
 
 function renderSummary() {
