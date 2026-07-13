@@ -1042,10 +1042,13 @@ function renderGroupedSummary(groups) {
   const groupKeys = Object.keys(groups).sort((a,b) => a.localeCompare(b));
   const cards = [];
   groupKeys.forEach(label => {
+    const segs = label.split('　');
+    const seriesLine = segs[0] || '';
+    const restLine = segs.slice(1).join(' ');
     Object.entries(groups[label]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k,v]) => {
       cards.push(`
         <div class="summary-item">
-          <span class="part-name"><span class="group-label">${label}</span>${k}</span>
+          <span class="part-name"><span class="group-label">${seriesLine}</span>${restLine ? `<span class="group-label">${restLine}</span>` : ''}${k}</span>
           <span class="part-qty">${v}<span class="part-unit">個</span></span>
         </div>`);
     });
@@ -1265,8 +1268,11 @@ function exportPDF() {
   function renderPdfGroup(groups) {
     const cards = [];
     Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(label => {
+      const segs = label.split('　');
+      const seriesLine = segs[0] || '';
+      const restLine = segs.slice(1).join(' ');
       Object.entries(groups[label]).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([k,v]) => {
-        cards.push(`<div class="sitem"><span class="sname"><span class="sgrouplabel">${label}</span>${k}</span><span class="sqty">${v}<small> 個</small></span></div>`);
+        cards.push(`<div class="sitem"><span class="sname"><span class="sgrouplabel">${seriesLine}</span>${restLine ? `<span class="sgrouplabel">${restLine}</span>` : ''}${k}</span><span class="sqty">${v}<small> 個</small></span></div>`);
       });
     });
     return `<div class="sumgrid">${cards.join('')}</div>`;
