@@ -1216,12 +1216,16 @@ function exportPDF() {
   const series = getSeries();
   const date = new Date().toLocaleDateString('zh-TW');
   const totals = {};
+  const typeTotals = {};
   items.forEach(it => {
     const itemSeries = it.series || series;
     Object.entries(getParts({...it,series:itemSeries})).forEach(([k,v])=>{
       const key = `［${itemSeries}］${k}`;
       totals[key]=(totals[key]||0)+v;
     });
+    const typeLabel = it.custom ? (it.label || '自訂組合') : it.type;
+    const typeKey = `［${itemSeries}］${typeLabel}`;
+    typeTotals[typeKey] = (typeTotals[typeKey] || 0) + (it.qty || 0);
   });
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${projectName}</title>
@@ -1251,7 +1255,11 @@ function exportPDF() {
     return `<tr><td>${it.space}</td><td>${it.coverColor||'—'}</td><td><div style="font-size:9px;color:#9e9488;">${itemSeries}</div>${typeLabel}</td><td>${it.partColor||'—'}</td><td>${dirLabel}</td><td>${it.qty}</td>
     <td class="parts">${Object.entries(p).map(([k,v])=>`${k} ×${v}`).join('<br>')}</td></tr>`;
   }).join('')}</tbody></table>
-  <h2 style="page-break-before:always;padding-top:12px;">零件統計匯總</h2>
+  <h2 style="page-break-before:always;padding-top:12px;">品項統計</h2>
+  <div class="sumgrid">${Object.entries(typeTotals).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>
+    `<div class="sitem"><span class="sname">${k}</span><span class="sqty">${v}<small> 個</small></span></div>`
+  ).join('')}</div>
+  <h2>零件統計匯總</h2>
   <div class="sumgrid">${Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>
     `<div class="sitem"><span class="sname">${k}</span><span class="sqty">${v}<small> 個</small></span></div>`
   ).join('')}</div>
