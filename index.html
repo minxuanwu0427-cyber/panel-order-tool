@@ -64,9 +64,11 @@
   .btn-icon:hover{background:var(--bg3);color:var(--text);}
   .btn-icon.danger{color:var(--red);border-color:#d4b4ae;}
   .btn-icon.danger:hover{background:#f5e8e6;}
+  .type-series{font-size:11px;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;}
   .summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;}
   .summary-item{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;font-size:14px;}
-  .summary-item .part-name{color:var(--text2);flex:1;font-size:13px;}
+  .summary-item .part-name{color:var(--text2);flex:1;font-size:13px;display:flex;flex-direction:column;gap:2px;}
+  .summary-item .series-label{font-size:11px;letter-spacing:.08em;color:var(--text3);}
   .summary-item .part-qty{font-family:'DM Mono',monospace;font-size:17px;color:var(--text);margin-left:12px;}
   .summary-item .part-unit{font-size:10px;color:var(--text3);margin-left:3px;}
   .empty{text-align:center;padding:40px;color:var(--text3);font-size:14px;letter-spacing:.06em;}
@@ -223,6 +225,11 @@
   <div class="modal">
     <h3>編輯項目</h3>
     <div class="edit-grid">
+      <div class="full"><label>面板系列</label><select id="editSeries" onchange="onEditSeriesChange()">
+        <option value="Glatima">Glatima（國際牌）</option>
+        <option value="Risna">Risna（國際牌）</option>
+        <option value="So-style">So-style（國際牌）</option>
+      </select></div>
       <div><label>空間</label><input type="text" id="editSpace" list="spaceList"></div>
       <div><label>蓋板顏色</label><select id="editCoverColor"></select></div>
       <div class="full"><label>類型</label><select id="editType" onchange="onEditTypeChange()"></select></div>
@@ -242,6 +249,14 @@
   <div class="modal">
     <h3 id="customModalTitle">自訂組合</h3>
     <div class="edit-grid" style="margin-bottom:12px;">
+      <div class="full">
+        <label>面板系列</label>
+        <select id="customSeries">
+          <option value="Glatima">Glatima（國際牌）</option>
+          <option value="Risna">Risna（國際牌）</option>
+          <option value="So-style">So-style（國際牌）</option>
+        </select>
+      </div>
       <div>
         <label>空間</label>
         <input type="text" id="customSpace" placeholder="例：玄關" list="spaceList">
@@ -878,9 +893,7 @@ function getSeries() { return document.getElementById('panelSeries').value; }
 
 function onSeriesChange() {
   rebuildTypeSelect('addType');
-  rebuildTypeSelect('editType');
   rebuildCoverColorSelect('addCoverColor');
-  rebuildCoverColorSelect('editCoverColor');
   // So-style / Risna 隱藏零件色與方向欄
   const oneColor = isOneColorSeries(getSeries());
   ['addPartColor','addDir'].forEach(id => {
@@ -893,25 +906,25 @@ function onSeriesChange() {
   renderItems();
 }
 
-function rebuildTypeSelect(id) {
+function rebuildTypeSelect(id, seriesOverride) {
   const sel = document.getElementById(id);
-  const series = getSeries();
+  const series = seriesOverride || getSeries();
   const groups = TYPE_GROUPS[series] || TYPE_GROUPS['So-style'];
   sel.innerHTML = groups.map(g =>
     `<optgroup label="${g.group}">${g.types.map(t => `<option value="${t}">${t}</option>`).join('')}</optgroup>`
   ).join('');
 }
 
-function rebuildCoverColorSelect(id) {
+function rebuildCoverColorSelect(id, seriesOverride) {
   const sel = document.getElementById(id);
-  const series = getSeries();
+  const series = seriesOverride || getSeries();
   const colors = COVER_COLORS[series] || ['白','灰','黑'];
   sel.innerHTML = colors.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
-function rebuildPartColorSelect(id, type) {
+function rebuildPartColorSelect(id, type, seriesOverride) {
   const sel = document.getElementById(id);
-  const series = getSeries();
+  const series = seriesOverride || getSeries();
   const colors = getPartColors(series, type);
   sel.innerHTML = colors.map(c => `<option value="${c}">${c}</option>`).join('');
   sel.disabled = (colors.length === 0);
@@ -929,19 +942,36 @@ function onTypeChange() {
   }
 }
 function onEditTypeChange() {
+  const series = document.getElementById('editSeries').value;
   const type = document.getElementById('editType').value;
-  rebuildPartColorSelect('editPartColor', type);
+  rebuildPartColorSelect('editPartColor', type, series);
+}
+
+function onEditSeriesChange() {
+  const series = document.getElementById('editSeries').value;
+  rebuildCoverColorSelect('editCoverColor', series);
+  rebuildTypeSelect('editType', series);
+  onEditTypeChange();
+  toggleEditOneColor(series);
+}
+
+function toggleEditOneColor(series) {
+  const oneColor = isOneColorSeries(series);
+  ['editPartColor','editDir'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.closest('div').style.display = oneColor ? 'none' : '';
+  });
 }
 
 // ── RENDER ────────────────────────────────────────────────────
 function renderItems() {
   const tbody = document.getElementById('itemBody');
-  const series = getSeries();
   if (!items.length) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty">尚無項目，請新增面板項目</td></tr>';
   } else {
     tbody.innerHTML = items.map((it, i) => {
-      const parts = getParts({...it, series});
+      const itemSeries = it.series || getSeries();
+      const parts = getParts({...it, series: itemSeries});
       const partsHtml = Object.entries(parts).map(([k,v]) => {
         const isInvalid = /無此項目|無此料號|無此色|查無料號/.test(k);
         const cls = it.custom ? 'custom-tag' : (isInvalid ? 'invalid-tag' : '');
@@ -950,11 +980,14 @@ function renderItems() {
       const coverColorLabel = it.coverColor || '—';
       const partColorLabel  = it.partColor  || '—';
       const dirLabel = it.custom ? '—' : (it.dir || '橫');
-      const oneColor = isOneColorSeries(it.series || getSeries());
+      const oneColor = isOneColorSeries(itemSeries);
       return `<tr>
         <td>${it.space}</td>
         <td><span class="series-tag">${coverColorLabel}</span></td>
-        <td>${it.custom ? `<em style="color:var(--gold2)">${it.label||'自訂組合'}</em>` : it.type}</td>
+        <td>
+          <div class="type-series">${itemSeries}</div>
+          ${it.custom ? `<em style="color:var(--gold2)">${it.label||'自訂組合'}</em>` : it.type}
+        </td>
         <td class="col-part-color">${oneColor ? '' : `<span class="series-tag">${partColorLabel}</span>`}</td>
         <td class="col-dir">${oneColor ? '' : dirLabel}</td>
         <td><span class="qty-badge">${it.qty}</span></td>
@@ -973,33 +1006,50 @@ function renderItems() {
 function renderTypeSummary() {
   const el = document.getElementById('typeSummaryContent');
   if (!items.length) { el.innerHTML = '<div class="empty">新增項目後將顯示統計</div>'; return; }
-  const totals = {};
+  const totals = {}; // totals[series][label] = qty
   items.forEach(it => {
+    const series = it.series || getSeries();
     const label = it.custom ? (it.label || '自訂組合') : it.type;
-    totals[label] = (totals[label] || 0) + (it.qty || 0);
+    totals[series] = totals[series] || {};
+    totals[series][label] = (totals[series][label] || 0) + (it.qty || 0);
   });
-  const sorted = Object.entries(totals).sort((a,b) => a[0].localeCompare(b[0]));
-  el.innerHTML = `<div class="summary-grid">${sorted.map(([k,v])=>`
-    <div class="summary-item">
-      <span class="part-name">${k}</span>
-      <span class="part-qty">${v}<span class="part-unit">個</span></span>
-    </div>`).join('')}</div>`;
+  const seriesKeys = Object.keys(totals).sort((a,b) => a.localeCompare(b));
+  const cards = [];
+  seriesKeys.forEach(series => {
+    Object.entries(totals[series]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([label, v]) => {
+      cards.push(`
+        <div class="summary-item">
+          <span class="part-name"><span class="series-label">${series}</span>${label}</span>
+          <span class="part-qty">${v}<span class="part-unit">個</span></span>
+        </div>`);
+    });
+  });
+  el.innerHTML = `<div class="summary-grid">${cards.join('')}</div>`;
 }
 
 function renderSummary() {
   const el = document.getElementById('summaryContent');
-  const series = getSeries();
   if (!items.length) { el.innerHTML = '<div class="empty">新增項目後將顯示統計</div>'; return; }
-  const totals = {};
+  const totals = {}; // totals[series][partName] = qty
   items.forEach(it => {
-    Object.entries(getParts({...it, series})).forEach(([k,v]) => { totals[k] = (totals[k]||0)+v; });
+    const itemSeries = it.series || getSeries();
+    totals[itemSeries] = totals[itemSeries] || {};
+    Object.entries(getParts({...it, series: itemSeries})).forEach(([k,v]) => {
+      totals[itemSeries][k] = (totals[itemSeries][k] || 0) + v;
+    });
   });
-  const sorted = Object.entries(totals).sort((a,b) => a[0].localeCompare(b[0]));
-  el.innerHTML = `<div class="summary-grid">${sorted.map(([k,v])=>`
-    <div class="summary-item">
-      <span class="part-name">${k}</span>
-      <span class="part-qty">${v}<span class="part-unit">個</span></span>
-    </div>`).join('')}</div>`;
+  const seriesKeys = Object.keys(totals).sort((a,b) => a.localeCompare(b));
+  const cards = [];
+  seriesKeys.forEach(series => {
+    Object.entries(totals[series]).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, v]) => {
+      cards.push(`
+        <div class="summary-item">
+          <span class="part-name"><span class="series-label">${series}</span>${k}</span>
+          <span class="part-qty">${v}<span class="part-unit">個</span></span>
+        </div>`);
+    });
+  });
+  el.innerHTML = `<div class="summary-grid">${cards.join('')}</div>`;
 }
 
 // ── ADD ───────────────────────────────────────────────────────
@@ -1028,15 +1078,18 @@ function confirmDelete() { if(deleteTargetIdx!==null){items.splice(deleteTargetI
 function openEditModal(i) {
   editTargetIdx = i;
   const it = items[i];
+  const series = it.series || getSeries();
+  document.getElementById('editSeries').value = series;
   document.getElementById('editSpace').value = it.space;
-  rebuildCoverColorSelect('editCoverColor');
+  rebuildCoverColorSelect('editCoverColor', series);
   document.getElementById('editCoverColor').value = it.coverColor || '';
-  rebuildTypeSelect('editType');
+  rebuildTypeSelect('editType', series);
   document.getElementById('editType').value = it.type;
-  rebuildPartColorSelect('editPartColor', it.type);
+  rebuildPartColorSelect('editPartColor', it.type, series);
   document.getElementById('editPartColor').value = it.partColor || '';
   document.getElementById('editDir').value = it.dir || '橫';
   document.getElementById('editQty').value = it.qty;
+  toggleEditOneColor(series);
   document.getElementById('editModal').classList.add('open');
 }
 function closeEditModal() { editTargetIdx=null; document.getElementById('editModal').classList.remove('open'); }
@@ -1050,7 +1103,7 @@ function confirmEdit() {
     partColor:  document.getElementById('editPartColor').value,
     dir:        document.getElementById('editDir').value,
     qty:        parseInt(document.getElementById('editQty').value)||1,
-    series:     getSeries(),
+    series:     document.getElementById('editSeries').value,
   };
   renderItems(); showNotif('已更新項目'); closeEditModal();
 }
@@ -1069,12 +1122,14 @@ function openCustomModal(editIdx = null) {
 
   if (isEdit) {
     const it = items[editIdx];
+    document.getElementById('customSeries').value = it.series || getSeries();
     document.getElementById('customSpace').value = it.space || '';
     document.getElementById('customLabel').value = it.label || '';
     document.getElementById('customCoverColor').value = it.coverColor || '';
     document.getElementById('customPartColor').value = it.partColor || '';
     Object.entries(it.customParts || {}).forEach(([name, qty]) => addCustomPartRow(name, qty));
   } else {
+    document.getElementById('customSeries').value = getSeries();
     document.getElementById('customSpace').value = document.getElementById('addSpace').value || '';
     document.getElementById('customLabel').value = '';
     document.getElementById('customCoverColor').value = '';
@@ -1115,7 +1170,8 @@ function confirmCustom() {
   });
   if (!Object.keys(customParts).length) { showNotif('請至少填入一個零件'); return; }
 
-  const entry = { space, label, custom: true, customParts, qty: 1, series: getSeries(), coverColor, partColor };
+  const series = document.getElementById('customSeries').value;
+  const entry = { space, label, custom: true, customParts, qty: 1, series, coverColor, partColor };
   if (customEditIdx !== null) {
     items[customEditIdx] = entry;
     showNotif('已更新自訂組合');
@@ -1161,7 +1217,11 @@ function exportPDF() {
   const date = new Date().toLocaleDateString('zh-TW');
   const totals = {};
   items.forEach(it => {
-    Object.entries(getParts({...it,series})).forEach(([k,v])=>{totals[k]=(totals[k]||0)+v;});
+    const itemSeries = it.series || series;
+    Object.entries(getParts({...it,series:itemSeries})).forEach(([k,v])=>{
+      const key = `［${itemSeries}］${k}`;
+      totals[key]=(totals[key]||0)+v;
+    });
   });
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${projectName}</title>
@@ -1184,8 +1244,11 @@ function exportPDF() {
   <h2>項目明細</h2>
   <table><thead><tr><th>空間</th><th>蓋板色</th><th>類型</th><th>零件色</th><th>方向</th><th>數量</th><th>拆分零件</th></tr></thead>
   <tbody>${items.map(it=>{
-    const p=getParts({...it,series});
-    return `<tr><td>${it.space}</td><td>${it.coverColor||'—'}</td><td>${it.custom?(it.label||'自訂'):it.type}</td><td>${it.partColor||'—'}</td><td>${it.dir||'—'}</td><td>${it.qty}</td>
+    const itemSeries = it.series || series;
+    const p=getParts({...it,series:itemSeries});
+    const typeLabel = it.custom?(it.label||'自訂'):it.type;
+    const dirLabel = it.custom ? '—' : (isOneColorSeries(itemSeries) ? '—' : (it.dir||'—'));
+    return `<tr><td>${it.space}</td><td>${it.coverColor||'—'}</td><td><div style="font-size:9px;color:#9e9488;">${itemSeries}</div>${typeLabel}</td><td>${it.partColor||'—'}</td><td>${dirLabel}</td><td>${it.qty}</td>
     <td class="parts">${Object.entries(p).map(([k,v])=>`${k} ×${v}`).join('<br>')}</td></tr>`;
   }).join('')}</tbody></table>
   <h2 style="page-break-before:always;padding-top:12px;">零件統計匯總</h2>
