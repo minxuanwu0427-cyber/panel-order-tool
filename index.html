@@ -1003,9 +1003,14 @@ function renderItems() {
   renderSummary();
 }
 
-// 組合統計分組標題：系列 + 方向（無方向隱藏）+ 蓋板色 + 零件色（無零件色隱藏）
+// 品項統計分組標題：
+// So-style：單行「系列 顏色色」，不分蓋板/零件
+// Glatima / Risna：兩行（第一行系列／第二行 方向+蓋板色+零件色）
 function getItemAttrLabel(it) {
   const itemSeries = it.series || getSeries();
+  if (itemSeries === 'So-style') {
+    return it.coverColor ? `${itemSeries} ${it.coverColor}色` : itemSeries;
+  }
   const oneColor = isOneColorSeries(itemSeries);
   const segs = [itemSeries];
   if (!it.custom && !oneColor && it.dir) segs.push(it.dir === '直' ? '直式' : '橫式');
@@ -1019,12 +1024,21 @@ function isCoverPartName(name) {
   return /蓋板/.test(name);
 }
 
-// 零件統計用分組標籤：單一色系列（So-style/Risna）蓋板與零件共用同一顏色，合併顯示；
-// 雙維度系列（Glatima）蓋板顯示方向+蓋板色、其他零件顯示零件色
+// 零件統計用分組標籤（皆為單行）：
+// Risna 蓋板色 → 零件色對應（銅邊/銀邊只影響蓋板外觀，零件統一用底色）
+const RISNA_PART_COLOR_MAP = { '白/銅邊':'白', '白/銀邊':'白', '灰/銀邊':'灰' };
+
+// So-style：蓋板與零件共用同一顏色，合併顯示「系列 顏色色」
+// Risna：蓋板顯示「系列 顏色蓋板」、其他零件顯示「系列 零件色零件」（依對應表換算）
+// Glatima：蓋板顯示「系列 方向 蓋板色蓋板」、其他零件顯示「系列 零件色零件」
 function getPartsGroupLabel(it, itemSeries, isCover) {
-  const oneColor = isOneColorSeries(itemSeries);
-  if (oneColor) {
+  if (itemSeries === 'So-style') {
     return it.coverColor ? `${itemSeries} ${it.coverColor}色` : itemSeries;
+  }
+  if (itemSeries === 'Risna') {
+    if (isCover) return it.coverColor ? `${itemSeries} ${it.coverColor}蓋板` : itemSeries;
+    const partColor = RISNA_PART_COLOR_MAP[it.coverColor] || it.coverColor;
+    return partColor ? `${itemSeries} ${partColor}零件` : itemSeries;
   }
   const segs = [itemSeries];
   if (isCover) {
